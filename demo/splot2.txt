@@ -1,0 +1,8 @@
+set terminal gdmp background 'white'
+set title "Surface plot\nexample"
+set xrange [-pi/2:pi/2]; set yrange [-pi/2:pi/2]
+set style function lp
+set contour
+set isosamples 10,10;
+set samples 10,10;
+splot sin(om*x)*cos(om*y)

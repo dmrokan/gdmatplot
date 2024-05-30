@@ -1,0 +1,127 @@
+[gd_scene load_steps=18 format=3 uid="uid://3q21aqteworx"]
+
+[ext_resource type="Script" path="res://GDMatPlotNativeTest1_1.gd" id="1_t4ory"]
+[ext_resource type="Script" path="res://TabBar.gd" id="1_v6egg"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest1_2.gd" id="2_cf3eo"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest1_3.gd" id="3_2jvcm"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest1_4.gd" id="3_vtvmo"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest2_1.gd" id="6_h3qp2"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest1_5.gd" id="6_wk8ws"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest1_6.gd" id="7_7w6av"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest2_6.gd" id="7_vsbgx"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest2_5.gd" id="8_1lmno"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest2_4.gd" id="8_envhi"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest2_2.gd" id="9_x5nby"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest2_3.gd" id="10_evxsl"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest3_1.gd" id="14_i8fjc"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest3_2.gd" id="15_2iftq"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest3_3.gd" id="16_mp2es"]
+[ext_resource type="Script" path="res://GDMatPlotNativeTest3_4.gd" id="17_cwt7j"]
+
+[node name="PanelContainer" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="TabBar" type="TabBar" parent="VBoxContainer"]
+layout_mode = 2
+tab_count = 3
+tab_0/title = "Test1"
+tab_1/title = "Test2"
+tab_2/title = "Test3"
+script = ExtResource("1_v6egg")
+
+[node name="Tab1" type="TabContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Main" type="Node2D" parent="VBoxContainer/Tab1"]
+
+[node name="GDMatPlotNativeTest1_1" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
+script = ExtResource("1_t4ory")
+
+[node name="GDMatPlotNativeTest1_2" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
+position = Vector2(620, 0)
+script = ExtResource("2_cf3eo")
+
+[node name="GDMatPlotNativeTest1_3" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
+position = Vector2(0, 500)
+script = ExtResource("3_2jvcm")
+
+[node name="GDMatPlotNativeTest1_4" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
+position = Vector2(620, 500)
+script = ExtResource("3_vtvmo")
+
+[node name="GDMatPlotNativeTest1_5" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
+position = Vector2(1240, 0)
+script = ExtResource("6_wk8ws")
+
+[node name="GDMatPlotNativeTest1_6" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
+position = Vector2(1240, 500)
+script = ExtResource("7_7w6av")
+
+[node name="Tab2" type="TabContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Main" type="Node2D" parent="VBoxContainer/Tab2"]
+
+[node name="GDMatPlotNativeTest2_1" type="GDMatPlotNative" parent="VBoxContainer/Tab2/Main"]
+script = ExtResource("6_h3qp2")
+
+[node name="GDMatPlotNativeTest2_2" type="GDMatPlotNative" parent="VBoxContainer/Tab2/Main"]
+position = Vector2(620, 0)
+script = ExtResource("9_x5nby")
+
+[node name="GDMatPlotNativeTest2_3" type="GDMatPlotNative" parent="VBoxContainer/Tab2/Main"]
+position = Vector2(0, 500)
+script = ExtResource("10_evxsl")
+
+[node name="GDMatPlotNativeTest2_4" type="GDMatPlotNative" parent="VBoxContainer/Tab2/Main"]
+position = Vector2(620, 500)
+script = ExtResource("8_envhi")
+
+[node name="GDMatPlotNativeTest2_5" type="GDMatPlotNative" parent="VBoxContainer/Tab2/Main"]
+position = Vector2(1240, 0)
+script = ExtResource("8_1lmno")
+
+[node name="GDMatPlotNativeTest2_6" type="GDMatPlotNative" parent="VBoxContainer/Tab2/Main"]
+position = Vector2(1240, 500)
+script = ExtResource("7_vsbgx")
+
+[node name="Tab3" type="TabContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Main" type="Node2D" parent="VBoxContainer/Tab3"]
+
+[node name="GDMatPlotNativeTest3_1" type="GDMatPlotNative" parent="VBoxContainer/Tab3/Main"]
+scale = Vector2(1.5, 1)
+script = ExtResource("14_i8fjc")
+
+[node name="GDMatPlotNativeTest3_2" type="GDMatPlotNative" parent="VBoxContainer/Tab3/Main"]
+position = Vector2(930, 0)
+scale = Vector2(1.5, 1)
+script = ExtResource("15_2iftq")
+
+[node name="GDMatPlotNativeTest3_3" type="GDMatPlotNative" parent="VBoxContainer/Tab3/Main"]
+position = Vector2(0, 500)
+scale = Vector2(1.5, 1)
+script = ExtResource("16_mp2es")
+
+[node name="GDMatPlotNativeTest3_4" type="GDMatPlotNative" parent="VBoxContainer/Tab3/Main"]
+position = Vector2(930, 500)
+scale = Vector2(1.5, 1)
+script = ExtResource("17_cwt7j")
+
+[connection signal="tab_changed" from="VBoxContainer/TabBar" to="VBoxContainer/TabBar" method="_on_tab_changed"]

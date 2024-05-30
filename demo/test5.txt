@@ -1,0 +1,28 @@
+# Example taken from
+# https://github.com/TheFox/gnuplot-examples/blob/master/scripts/line-avg.gp
+
+set terminal gdmp
+
+set title 'Lines Avg'
+set xlabel 'x'
+set ylabel 'y'
+
+set grid
+set key below center horizontal noreverse enhanced autotitle box dashtype solid
+set tics out nomirror
+set border 3 front linetype black linewidth 1.0 dashtype solid
+
+set style line 1 linecolor rgb '#00ff00' linewidth 2 linetype 3 pointtype 2
+set style line 2 linecolor rgb '#0000ff' linewidth 1 linetype 3 pointtype 8 ps 1.0
+set style line 3 linecolor rgb '#ff0000' linewidth 1 linetype 3 pointtype 1
+set style data linespoints
+
+set tics font ",18" textcolor 'magenta'
+
+samples(x) = $0 > 4 ? 5 : ($0+1)
+avg5(x) = (shift5(x), (back1 + back2 + back3 + back4 + back5) / samples($0))
+shift5(x) = (back5 = back4, back4 = back3, back3 = back2, back2 = back1, back1 = x)
+
+init(x) = (back1 = back2 = back3 = back4 = back5 = sum = 0)
+
+plot sum = init(0), 'df' using 1:2 linestyle 1 title 'data', 'df' using 1:(sum = sum + $2, sum/($0+1)) linestyle 3 title 'total avg', 'df' using 1:(avg5($2)) linestyle 2 title '5 points avg'

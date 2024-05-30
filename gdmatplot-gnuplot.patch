@@ -1,0 +1,3889 @@
+From 2853773500d3e9a70d062d141ff146eeba7b169c Mon Sep 17 00:00:00 2001
+From: Okan Demir <okndemir@gmail.com>
+Date: Thu, 30 May 2024 20:04:32 +0300
+Subject: [PATCH] GDMatPlot patch
+
+---
+ src/alloc.h           |    2 +-
+ src/axis.h            |    2 +-
+ src/bitmap.h          |    2 +-
+ src/boundary.h        |    2 +-
+ src/breaders.h        |   10 +
+ src/color.h           |    2 +-
+ src/command.c         |  121 ++-
+ src/command.h         |    2 +-
+ src/complexfun.h      |    2 +
+ src/contour.h         |    2 +-
+ src/datablock.h       |    2 +-
+ src/datafile.c        |   53 +-
+ src/datafile.h        |    2 +-
+ src/dynarray.h        |    2 +-
+ src/encoding.h        |    1 +
+ src/eval.h            |    1 +
+ src/external.h        |    2 +-
+ src/filters.h         |    2 +-
+ src/fit.c             |    4 +
+ src/fit.h             |    6 +-
+ src/gadgets.h         |    2 +-
+ src/gdmp_disable_io.h |   89 ++
+ src/getcolor.h        |    2 +-
+ src/gp_hist.h         |    2 +-
+ src/gp_time.h         |    2 +-
+ src/gpexecute.h       |    2 +-
+ src/gplocale.c        |    4 +
+ src/graph3d.h         |    2 +-
+ src/graphics.h        |    2 +-
+ src/help.h            |   11 +-
+ src/hidden3d.h        |    2 +-
+ src/internal.c        |    2 +
+ src/internal.h        |    2 +-
+ src/interpol.h        |    2 +-
+ src/jitter.h          |    2 +-
+ src/libcerf.h         |    2 +
+ src/loadpath.c        |    4 +
+ src/misc.c            |    4 +
+ src/misc.h            |    1 +
+ src/mouse.h           |    1 +
+ src/mousecmn.h        |    2 +-
+ src/parse.h           |    2 +-
+ src/plot.c            |   50 +-
+ src/plot2d.c          |    6 +-
+ src/plot2d.h          |    1 +
+ src/pm3d.h            |    2 +-
+ src/readline.h        |    2 +-
+ src/save.h            |   39 +-
+ src/scanner.h         |    1 +
+ src/set.c             |   30 +-
+ src/setshow.h         |    1 +
+ src/specfun.h         |    1 +
+ src/standard.h        |    1 +
+ src/stats.h           |    1 +
+ src/stdfn.c           |   10 +
+ src/stdfn.h           |    6 +
+ src/syscfg.h          |    3 +
+ src/tabulate.h        |    1 +
+ src/term.c            |    8 +
+ src/term.h            |   38 +-
+ src/term_api.h        |    1 +
+ src/util.c            |    2 +
+ src/util.h            |    5 +-
+ src/util3d.h          |    1 +
+ src/version.c         |    6 +-
+ src/version.h         |    1 +
+ src/vms.h             |    2 +-
+ src/voxelgrid.h       |    1 +
+ src/watch.h           |    2 +-
+ src/xdg.h             |    4 +-
+ term/gdmp.trm         | 1841 +++++++++++++++++++++++++++++++++++++++++
+ 71 files changed, 2381 insertions(+), 52 deletions(-)
+ create mode 100644 src/gdmp_disable_io.h
+ create mode 100644 term/gdmp.trm
+
+diff --git a/src/alloc.h b/src/alloc.h
+index 05748f7a5..63d042c43 100644
+--- a/src/alloc.h
++++ b/src/alloc.h
+@@ -43,5 +43,5 @@
+ 
+ generic *gp_alloc(size_t size, const char *message);
+ generic *gp_realloc(generic *p, size_t size, const char *message);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_ALLOC_H */
+diff --git a/src/axis.h b/src/axis.h
+index 2cba4b8f0..c302561d1 100644
+--- a/src/axis.h
++++ b/src/axis.h
+@@ -541,5 +541,5 @@ void dump_axis_range(AXIS *axis);
+ #define reorder_if_necessary( min, max ) \
+ do { if (max < min) { double temp = min; min = max; max = temp; } \
+ } while (0)
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_AXIS_H */
+diff --git a/src/bitmap.h b/src/bitmap.h
+index da2b1f5f0..57d51ea63 100644
+--- a/src/bitmap.h
++++ b/src/bitmap.h
+@@ -97,5 +97,5 @@ int b_text_angle(float);
+ int b_justify_text(enum JUSTIFY mode);
+ void b_boxfill(int, unsigned int, unsigned int, unsigned int, unsigned int);
+ void b_filled_polygon(int points, gpiPoint *corners);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_BITMAP_H */
+diff --git a/src/boundary.h b/src/boundary.h
+index 7be352ed4..1159adae2 100644
+--- a/src/boundary.h
++++ b/src/boundary.h
+@@ -22,5 +22,5 @@ extern int ylabel_y, y2label_y, xtic_y, x2tic_y, ytic_x, y2tic_x;
+ extern int key_cols, key_rows;
+ extern int key_count;
+ extern int title_x, title_y;
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_BOUNDARY_H */
+diff --git a/src/breaders.h b/src/breaders.h
+index 746211b63..bce9e4190 100644
+--- a/src/breaders.h
++++ b/src/breaders.h
+@@ -46,6 +46,7 @@
+ 
+ /* Prototypes of functions exported by breaders.c */
+ 
++#ifndef GDMP_BUILD
+ void edf_filetype_function(void);
+ void png_filetype_function(void);
+ void gif_filetype_function(void);
+@@ -53,5 +54,14 @@ void jpeg_filetype_function(void);
+ int  df_libgd_get_pixel(int i, int j, int component);
+ 
+ TBOOLEAN df_read_pixmap(t_pixmap *pixmap);
++#else
++static void edf_filetype_function(void) {}
++static void png_filetype_function(void) {}
++static void gif_filetype_function(void) {}
++static void jpeg_filetype_function(void) {}
++static int  df_libgd_get_pixel(int i, int j, int component) { return 0; }
+ 
++static TBOOLEAN df_read_pixmap(t_pixmap *pixmap) { return 0; }
++#endif
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_BINEDF_H */
+diff --git a/src/color.h b/src/color.h
+index d94b61ea4..b7f21cf4b 100644
+--- a/src/color.h
++++ b/src/color.h
+@@ -273,7 +273,7 @@ unsigned int rgb_from_gray( double gray );
+ unsigned int rgb_from_colormap(double gray, udvt_entry *colormap);
+ double map2gray(double z, udvt_entry *colormap);
+ void get_colormap_range( udvt_entry *colormap, double *cm_min, double *cm_max );
+-
++#include "gdmp_disable_io.h"
+ #endif /* COLOR_H */
+ 
+ /* eof color.h */
+diff --git a/src/command.c b/src/command.c
+index dc7a2eb72..d14e86d8f 100644
+--- a/src/command.c
++++ b/src/command.c
+@@ -133,6 +133,10 @@ static TBOOLEAN pause_internal;    /* flag to indicate not to use a dialog box *
+ # include <conio.h>		/* for getch() */
+ #endif
+ 
++#ifdef GDMP_BUILD
++#undef _WIN32
++#endif
++
+ typedef enum ifstate {IF_INITIAL=1, IF_TRUE, IF_FALSE} ifstate;
+ 
+ /* static prototypes */
+@@ -436,7 +440,7 @@ com_line()
+ }
+ 
+ 
+-int
++int GDMP_DECLSPEC GDMP_STDCALL
+ do_line()
+ {
+     /* Line continuation has already been handled by read_line().
+@@ -1146,6 +1150,7 @@ iteration_early_exit()
+ void
+ changedir_command()
+ {
++#ifndef GDMP_BUILD
+     char *save_file = NULL;
+ 
+     c_token++;
+@@ -1159,6 +1164,9 @@ changedir_command()
+     else
+ 	update_gpval_variables(5);
+     free(save_file);
++#else
++	c_token++;
++#endif
+ }
+ 
+ 
+@@ -1737,6 +1745,7 @@ call_command()
+ static void
+ load_or_call_command( TBOOLEAN call )
+ {
++#ifndef GDMP_BUILD
+     c_token++;
+     if (equals(c_token, "$") && isletter(c_token+1) && !equals(c_token+2,"[")) {
+ 	/* "load" a datablock rather than a file */
+@@ -1757,6 +1766,9 @@ load_or_call_command( TBOOLEAN call )
+ 	    fp = loadpath_fopen(save_file, "r");
+ 	load_file(fp, save_file, call ? 2 : 1);
+     }
++#else
++	c_token++;
++#endif
+ }
+ 
+ 
+@@ -1921,8 +1933,10 @@ timed_pause(double sleep_time)
+     usleep((useconds_t)(sleep_time * 1e6));
+     check_for_mouse_events();
+ #else
++#ifndef GDMP_BUILD
+     GP_SLEEP(sleep_time);
+ #endif
++#endif
+ }
+ 
+ /* process the 'pause' command */
+@@ -2410,6 +2424,7 @@ print_command()
+ void
+ pwd_command()
+ {
++#ifndef GDMP_BUILD
+     char *save_file = NULL;
+ 
+     save_file = gp_alloc(PATH_MAX, "print current dir");
+@@ -2418,6 +2433,7 @@ pwd_command()
+     else
+ 	fprintf(stderr, "%s\n", save_file);
+     free(save_file);
++#endif
+     c_token++;
+ }
+ 
+@@ -2582,6 +2598,7 @@ void return_command() {}
+ void
+ save_command()
+ {
++#ifndef GDMP_BUILD
+     FILE *fp;
+     char *save_file = NULL;
+     TBOOLEAN append = FALSE;
+@@ -2663,6 +2680,9 @@ save_command()
+     }
+ 
+     free(save_file);
++#else
++	c_token += 2;
++#endif
+ }
+ 
+ 
+@@ -2738,11 +2758,15 @@ stats_command()
+ void
+ system_command()
+ {
++#ifndef GDMP_BUILD
+     char *cmd;
+     ++c_token;
+     cmd = try_to_get_string();
+     do_system(cmd);
+     free(cmd);
++#else
++	++c_token;
++#endif
+ }
+ 
+ 
+@@ -3017,6 +3041,7 @@ invalid_command()
+ static int
+ changedir(char *path)
+ {
++#ifndef GDMP_BUILD
+ #if defined(MSDOS)
+     /* first deal with drive letter */
+ 
+@@ -3047,6 +3072,7 @@ changedir(char *path)
+ #else
+     return chdir(path);
+ #endif /* MSDOS etc. */
++#endif /* GDMP_BUILD */
+ }
+ 
+ /* used by replot_command() */
+@@ -3213,19 +3239,23 @@ help_command()
+ void
+ do_shell()
+ {
++#ifndef GDMP_BUILD
+     screen_ok = FALSE;
+     c_token++;
+ 
+     if ((vaxc$errno = lib$spawn()) != SS$_NORMAL) {
+ 	os_error(NO_CARET, "spawn error");
+     }
++#else
++	c_token++;
++#endif
+ }
+ 
+ 
+ static void
+ do_system(const char *cmd)
+ {
+-
++#ifndef GDMP_BUILD
+      if (!cmd)
+ 	return;
+ 
+@@ -3239,7 +3269,7 @@ do_system(const char *cmd)
+ 	os_error(NO_CARET, "spawn error");
+ 
+     (void) putc('\n', stderr);
+-
++#endif
+ }
+ #endif /* VMS */
+ 
+@@ -3465,6 +3495,7 @@ help_command()
+ static void
+ do_system(const char *cmd)
+ {
++#ifndef GDMP_BUILD
+     int ierr;
+ 
+ /* (am, 19980929)
+@@ -3490,6 +3521,7 @@ do_system(const char *cmd)
+     ierr = system(cmd);
+ #endif
+     report_error(ierr);
++#endif
+ }
+ 
+ /* is_history_command:
+@@ -3608,6 +3640,7 @@ rlgets(char *s, size_t n, const char *prompt)
+ void
+ do_shell()
+ {
++#ifndef GDMP_BUILD
+     screen_ok = FALSE;
+     c_token++;
+ 
+@@ -3621,6 +3654,9 @@ do_shell()
+ #  endif /* !(_WIN32 || __DJGPP__) */
+ 	    os_error(NO_CARET, "unable to spawn shell");
+     }
++#else
++	c_token++;
++#endif
+ }
+ 
+ #  elif defined(OS2)
+@@ -3628,6 +3664,7 @@ do_shell()
+ void
+ do_shell()
+ {
++#ifndef GDMP_BUILD
+     screen_ok = FALSE;
+     c_token++;
+ 
+@@ -3636,6 +3673,9 @@ do_shell()
+ 	    os_error(NO_CARET, "system() failed");
+     }
+     (void) putc('\n', stderr);
++#else
++	c_token++;
++#endif
+ }
+ 
+ #  else				/* !OS2 */
+@@ -3646,6 +3686,7 @@ do_shell()
+ void
+ do_shell()
+ {
++#ifndef GDMP_BUILD
+     static char exec[100] = EXEC;
+ 
+     screen_ok = FALSE;
+@@ -3657,6 +3698,9 @@ do_shell()
+ 	    os_error(NO_CARET, "system() failed");
+     }
+     (void) putc('\n', stderr);
++#else
++	c_token++;
++#endif
+ }
+ 
+ # endif				/* !MSDOS */
+@@ -3935,7 +3979,7 @@ expand_1level_macros()
+ int
+ do_system_func(const char *cmd, char **output)
+ {
+-
++#ifndef GDMP_BUILD
+ #if defined(VMS) || defined(PIPES)
+     int c;
+     FILE *f;
+@@ -4008,7 +4052,10 @@ do_system_func(const char *cmd, char **output)
+     return 0;
+ 
+ #endif /* VMS || PIPES */
+-
++#else
++	*output = gp_alloc(1, "gdmp_related");
++	return 0;
++#endif /* GDMP_BUILD */
+ }
+ 
+ static int
+@@ -4030,3 +4077,67 @@ report_error(int ierr)
+ 
+     return reported_error;
+ }
++
++#ifdef GDMP_BUILD
++void *_gdmp_matplot_object = NULL;
++static const double *gdmp_dataframe = NULL;
++static unsigned int gdmp_dataframe_colum_count = 0;
++static unsigned int gdmp_dataframe_row_count = 0;
++static unsigned int gdmp_dataframe_current_line = -1;
++static unsigned int gdmp_dataframe_current_index = 0;
++static unsigned int gdmp_dataframe_size = 0;
++
++void GDMP_DECLSPEC GDMP_STDCALL
++set_gdmp_matplot_object(void *ptr) {
++	_gdmp_matplot_object = ptr;
++}
++
++void GDMP_DECLSPEC GDMP_STDCALL
++set_gdmp_input_line(const char *line, size_t len) {
++	if (!len)
++		len = strlen(line);
++
++	if (gp_input_line_len < len)
++		extend_input_line();
++
++	strncpy(gp_input_line, line, MAX_LINE_LEN - 2);
++}
++
++void GDMP_DECLSPEC GDMP_STDCALL
++set_gdmp_dataframe(const double *df_ptr, unsigned int row_count, unsigned int col_count) {
++	gdmp_dataframe = df_ptr;
++	gdmp_dataframe_colum_count = col_count;
++	gdmp_dataframe_row_count = row_count;
++	gdmp_dataframe_current_line = -1;
++	gdmp_dataframe_current_index = 0;
++	gdmp_dataframe_size = row_count * col_count;
++}
++
++void reset_gdmp_dataframe() {
++	set_gdmp_dataframe(gdmp_dataframe, gdmp_dataframe_row_count, gdmp_dataframe_colum_count);
++}
++
++int seek_gdmp_dataframe(int dl) {
++	gdmp_dataframe_current_line += dl;
++	gdmp_dataframe_current_index = gdmp_dataframe_current_line * gdmp_dataframe_colum_count;
++
++	return gdmp_dataframe_current_line;
++}
++
++int get_gdmp_dataframe_column_count() {
++	if (gdmp_dataframe_colum_count > MAXDATACOLS)
++		return MAXDATACOLS;
++
++	return gdmp_dataframe_colum_count;
++}
++
++const double *get_gdmp_dataframe_column(int col) {
++	if (gdmp_dataframe_current_index + col >= gdmp_dataframe_size)
++		return NULL;
++
++	if (col > gdmp_dataframe_colum_count)
++		return NULL;
++
++	return &gdmp_dataframe[gdmp_dataframe_current_index+col];
++}
++#endif
+diff --git a/src/command.h b/src/command.h
+index 6ae3d7141..028ecacac 100644
+--- a/src/command.h
++++ b/src/command.h
+@@ -215,5 +215,5 @@ int do_system_func(const char *cmd, char **output);
+ void os2_ipc_setup(void);
+ int  os2_ipc_waitforinput(int mode);
+ #endif
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_COMMAND_H */
+diff --git a/src/complexfun.h b/src/complexfun.h
+index d24cd5e07..67f2b49e3 100644
+--- a/src/complexfun.h
++++ b/src/complexfun.h
+@@ -12,3 +12,5 @@ void f_zeta(union argument *arg);
+ double igamma(double a, double z);
+ 
+ #endif
++
++#include "gdmp_disable_io.h"
+diff --git a/src/contour.h b/src/contour.h
+index 9ac86ce7d..b97ba41f4 100644
+--- a/src/contour.h
++++ b/src/contour.h
+@@ -88,5 +88,5 @@ extern dynarray dyn_contour_levels_list;
+ 
+ struct gnuplot_contours *contour(int num_isolines, struct iso_curve *iso_lines);
+ 
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_CONTOUR_H */
+diff --git a/src/datablock.h b/src/datablock.h
+index 23da7e609..3530bd9f5 100644
+--- a/src/datablock.h
++++ b/src/datablock.h
+@@ -28,5 +28,5 @@ extern int evaluate_inside_functionblock;
+   #define  evaluate_inside_functionblock FALSE
+ 
+ #endif	/* USE_FUNCTIONBLOCKS */
+-
++#include "gdmp_disable_io.h"
+ #endif	/* GNUPLOT_DATABLOCK_H */
+diff --git a/src/datafile.c b/src/datafile.c
+index e0c960161..ceacbd40c 100644
+--- a/src/datafile.c
++++ b/src/datafile.c
+@@ -1480,6 +1480,7 @@ df_open(const char *cmd_filename, int max_using, struct curve_points *plot)
+ 	}
+ #endif /* HAVE_SYS_STAT_H */
+ 
++#ifndef GDMP_BUILD
+ 	if ((data_fp = loadpath_fopen(df_filename, df_binary_file ? "rb" : "r")) == NULL) {
+ 	    char *errmsg = gp_alloc(32 + strlen(df_filename), "errmsg");
+ 	    sprintf(errmsg, "Cannot find or open file \"%s\"", df_filename);
+@@ -1490,6 +1491,9 @@ df_open(const char *cmd_filename, int max_using, struct curve_points *plot)
+ 	    df_eof = 1;
+ 	    return DF_EOF;
+ 	}
++#else
++	data_fp = (FILE *) 1u;
++#endif
+     }
+ /*}}} */
+ 
+@@ -1538,12 +1542,20 @@ df_open(const char *cmd_filename, int max_using, struct curve_points *plot)
+ 
+ /*}}} */
+ 
++#ifdef GDMP_BUILD
++extern void reset_gdmp_dataframe();
++#endif
++
+ /*{{{  void df_close() */
+ void
+ df_close()
+ {
+     int i;
+ 
++#ifdef GDMP_BUILD
++	reset_gdmp_dataframe();
++#endif
++
+     /* paranoid - mark $n and column(n) as invalid */
+     df_no_cols = 0;
+ 
+@@ -1850,11 +1862,17 @@ plot_ticlabel_using(int axis)
+     df_no_tic_specs++;
+ }
+ 
++#ifdef GDMP_BUILD
++extern const double *get_gdmp_dataframe_column(int col);
++extern int get_gdmp_dataframe_column_count();
++extern int seek_gdmp_dataframe(int dl);
++#endif
+ 
+ /*{{{  int df_readline(v, max) */
+ int
+ df_readline(double v[], int max)
+ {
++#ifndef GDMP_BUILD
+     if (!data_fp && !df_pseudodata && !df_datablock && !df_array)
+ 	return DF_EOF;
+ 
+@@ -1864,10 +1882,12 @@ df_readline(double v[], int max)
+     } else {
+ 	return df_readascii(v, max);
+     }
++#else
++	return df_readascii(v, max);
++#endif
+ }
+ /*}}} */
+ 
+-
+ /* do the hard work... read lines from file,
+  * - use blanks to get index number
+  * - ignore lines outside range of indices required
+@@ -1880,6 +1900,8 @@ df_readascii(double v[], int max)
+     char *s;
+     int return_value = DF_GOOD;
+ 
++	seek_gdmp_dataframe(1);
++
+     /* Some plot styles (e.g. PARALLELPLOT) must guarantee that every line
+      * of data will return some input value even if it is missing or bad.
+      * This flag will force the line to return NaN rather than being skipped.
+@@ -1907,7 +1929,12 @@ df_readascii(double v[], int max)
+ 	return DF_EOF;
+ 
+     /*{{{  process line */
++#ifndef GDMP_BUILD
+     while ((s = df_gets()) != NULL) {
++#else
++	int dummy_index = 0;
++	while (dummy_index++ < 1) {
++#endif
+ 	TBOOLEAN line_okay = TRUE;
+ 	int output = 0;         /* how many numbers written to v[] */
+ 	return_value = DF_GOOD;
+@@ -1923,11 +1950,14 @@ df_readascii(double v[], int max)
+ 
+ 	/*{{{  check for blank lines, and reject by index/every */
+ 	/*{{{  skip leading spaces */
++#ifndef GDMP_BUILD
+ 	while (isspace((unsigned char) *s) && NOTSEP)
+ 	    ++s;                /* will skip the \n too, to point at \0  */
++#endif
+ 	/*}}} */
+ 
+ 	/*{{{  skip comments */
++#ifndef GDMP_BUILD
+ 	if (is_comment(*s)) {
+ 	    if (indexname) { /* Look for index name in comment */
+ 		while (is_comment(*s) || isspace((unsigned char)*s))
+@@ -1937,16 +1967,20 @@ df_readascii(double v[], int max)
+ 	    }
+ 	    continue;           /* ignore comments */
+ 	}
++#endif
+ 	/*}}} */
+ 
+ 	/*{{{  check EOF on mixed data */
++#ifndef GDMP_BUILD
+ 	if (mixed_data_fp && is_EOF(*s)) {
+ 	    df_eof = 1;         /* trap attempts to read past EOF */
+ 	    return DF_EOF;
+ 	}
++#endif
+ 	/*}}} */
+ 
+ 	/*{{{  its a blank line - update counters and continue or return */
++#ifndef GDMP_BUILD
+ 	if (*s == 0) {
+ 	    /* argh - this is complicated !  we need to
+ 	     *   ignore it if we haven't reached first index
+@@ -2014,6 +2048,7 @@ df_readascii(double v[], int max)
+ 
+ 	    return DF_FIRST_BLANK - (blank_count - 1);
+ 	}
++#endif
+ 	/*}}} */
+ 
+ 	/* get here => was not blank */
+@@ -2052,6 +2087,7 @@ df_readascii(double v[], int max)
+ 
+ 	++df_datum;
+ 
++#ifndef GDMP_BUILD
+ 	if (df_format) {
+ 	    /*{{{  do a sscanf */
+ 	    int i;
+@@ -2080,7 +2116,20 @@ df_readascii(double v[], int max)
+ 	    /*}}} */
+ 	} else
+ 	    df_tokenise(s);
+-
++#else
++	int gdmp_col_count = get_gdmp_dataframe_column_count();
++	df_no_cols = 0;
++	if (gdmp_col_count > 0) {
++		expand_df_column(gdmp_col_count);
++		const double *gdmp_df_column = NULL;
++		while ((gdmp_df_column = get_gdmp_dataframe_column(df_no_cols)) && df_no_cols < gdmp_col_count) {
++			df_column[df_no_cols].datum = *gdmp_df_column;
++			df_column[df_no_cols++].good = DF_GOOD;
++		}
++	}
++	if (df_no_cols == 0)
++		df_no_cols = EOF;
++#endif
+ 	/* df_tokenise already processed everything, but in the case of pseudodata
+ 	 * '+' or '++' the value itself was passed as an ascii string formatted by
+ 	 * "%g".  We can do better than this by substituting in the binary value.
+diff --git a/src/datafile.h b/src/datafile.h
+index 0e662d23b..9bd398fad 100644
+--- a/src/datafile.h
++++ b/src/datafile.h
+@@ -310,5 +310,5 @@ int df_get_num_matrix_cols(void);
+ void df_set_plot_mode(int);
+ 
+ void populate_sparse_matrix(struct coordinate **points, int *p_count);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_DATAFILE_H */
+diff --git a/src/dynarray.h b/src/dynarray.h
+index 9b83cc37b..732ee6104 100644
+--- a/src/dynarray.h
++++ b/src/dynarray.h
+@@ -51,5 +51,5 @@ void extend_dynarray(dynarray * array, long increment);
+ void resize_dynarray(dynarray * array, long newsize);
+ void *nextfrom_dynarray(dynarray * array);
+ void droplast_dynarray(dynarray * array);
+-
++#include "gdmp_disable_io.h"
+ #endif /* DYNARRAY_H */
+diff --git a/src/encoding.h b/src/encoding.h
+index 443947ce5..4e5888ab4 100644
+--- a/src/encoding.h
++++ b/src/encoding.h
+@@ -64,4 +64,5 @@ size_t strlen_sjis(const char *s);
+ 	    utf8str += 1; \
+     } while (0)
+ 
++#include "gdmp_disable_io.h"
+ #endif
+diff --git a/src/eval.h b/src/eval.h
+index 99d902495..4f7570d55 100644
+--- a/src/eval.h
++++ b/src/eval.h
+@@ -201,4 +201,5 @@ int gp_words(char *string);
+ #define free_at(at_ptr) \
+  do { real_free_at(at_ptr); at_ptr = NULL; } while (0)
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_EVAL_H */
+diff --git a/src/external.h b/src/external.h
+index fff62838f..db7e40401 100644
+--- a/src/external.h
++++ b/src/external.h
+@@ -127,5 +127,5 @@ __inline__ static DLL_SYM(gp_dll_t dl, const char *sym)
+ 
+ #endif /* No DLL */
+ #endif /* HAVE_EXTERNAL_FUNCTIONS */
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_EXTERNAL_H */
+diff --git a/src/filters.h b/src/filters.h
+index 39cb5a2c6..cf9eab597 100644
+--- a/src/filters.h
++++ b/src/filters.h
+@@ -45,5 +45,5 @@ extern double chi_shape_default_fraction;	/* This is fraction of longest edge */
+ #else
+ #define reset_hulls(foo) /* NOOP */
+ #endif /* WITH_CHI_SHAPES */
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_FILTERS_H */
+diff --git a/src/fit.c b/src/fit.c
+index 3e90768dc..a2dfdb2de 100644
+--- a/src/fit.c
++++ b/src/fit.c
+@@ -108,6 +108,10 @@
+ #include "util.h"
+ #include <signal.h>
+ 
++#ifdef GDMP_BUILD
++#undef _WIN32
++#endif
++
+ /* Just temporary */
+ #if defined(VA_START) && defined(STDC_HEADERS)
+ static void Dblfn(const char *fmt, ...);
+diff --git a/src/fit.h b/src/fit.h
+index 470d30f32..219aaca86 100644
+--- a/src/fit.h
++++ b/src/fit.h
+@@ -83,9 +83,9 @@ extern char *last_fit_command;
+ 
+ /* Prototypes of functions exported by fit.c */
+ 
+-#if defined(__GNUC__)
++#if defined(__GNUC__) && !defined(GDMP_BUILD)
+ void error_ex(int t_num, const char *str, ...) __attribute__((noreturn));
+-#elif defined(_MSC_VER)
++#elif defined(_MSC_VER) && !defined(GDMP_BUILD)
+ __declspec(noreturn) void error_ex(int t_num, const char *str, ...);
+ #else
+ void error_ex(int t_num, const char *str, ...);
+@@ -100,5 +100,5 @@ const char *getfitscript(void);
+ void call_gnuplot(const double *par, double *data);
+ TBOOLEAN regress_check_stop(int iter, double chisq, double last_chisq, double lambda);
+ void fit_progress(int i, double chisq, double last_chisq, double* a, double lambda, FILE *device);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_FIT_H */
+diff --git a/src/gadgets.h b/src/gadgets.h
+index 441d1bbcb..22070262d 100644
+--- a/src/gadgets.h
++++ b/src/gadgets.h
+@@ -715,5 +715,5 @@ extern struct iso_curve *mask_2Dpolygon_set;
+ extern struct iso_curve *mask_3Dpolygon_set;
+ extern void construct_2D_mask_set(struct coordinate *points, int p_count);
+ extern TBOOLEAN masked(double x, double y, struct iso_curve *mask_polygon_set);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_GADGETS_H */
+diff --git a/src/gdmp_disable_io.h b/src/gdmp_disable_io.h
+new file mode 100644
+index 000000000..2341834c0
+--- /dev/null
++++ b/src/gdmp_disable_io.h
+@@ -0,0 +1,89 @@
++#ifndef GDMP_DISABLE_IO_H
++#define GDMP_DISABLE_IO_H
++
++#ifdef GDMP_DISABLE_IO
++#undef fclose
++#undef fdopen
++#undef feof
++#undef ferror
++#undef fflush
++#undef fgetc
++#undef fgetpos
++#undef fgets
++#undef fileno
++#undef fopen
++#undef fprintf
++#undef fpurge
++#undef fputc
++#undef fputs
++#undef fread
++#undef freopen
++#undef fscanf
++#undef fseek
++#undef fsetpos
++#undef ftell
++#undef fwrite
++#undef getc
++#undef getchar
++#undef gets
++#undef getw
++#undef perror
++#undef printf
++#undef putc
++#undef putchar
++#undef puts
++#undef putw
++#undef remove
++#undef rewind
++#undef scanf
++#undef vfprintf
++#undef vfscanf
++
++#define fclose(...) (0)
++#define fdopen(...) (0)
++#define feof(...) (0)
++#define ferror(...) (0)
++#define fflush(...) (0)
++#define fgetc(...) (0)
++#define fgetpos(...) (0)
++#define fgets(...) (0)
++#define fileno(...) (0)
++#define fopen(...) (0)
++#define fprintf(...) (0)
++#define fpurge(...) (0)
++#define fputc(...) (0)
++#define fputs(...) (0)
++#define fread(...) (0)
++#define freopen(...) (0)
++#define fscanf(...) (0)
++#define fseek(...) (0)
++#define fsetpos(...) (0)
++#define ftell(...) (0)
++#define fwrite(...) (0)
++#define getc(...) (0)
++#define getchar(...) (0)
++#define gets(...) (0)
++#define getw(...) (0)
++#define perror(...) (0)
++#define printf(...) (0)
++#define putc(...) (0)
++#define putchar(...) (0)
++#define puts(...) (0)
++#define putw(...) (0)
++#define remove(...) (0)
++#define rewind(...) (0)
++#define scanf(...) (0)
++#define vfprintf(...) (0)
++#define vfscanf(...) (0)
++
++#endif // GDMP_DISABLE_IO
++
++#ifdef _WIN32
++#define GDMP_DECLSPEC __declspec(dllexport)
++#define GDMP_STDCALL __stdcall
++#else
++#define GDMP_DECLSPEC
++#define GDMP_STDCALL
++#endif
++
++#endif // GDMP_DISABLE_IO_H
+diff --git a/src/getcolor.h b/src/getcolor.h
+index 85dad4e94..389e38a19 100644
+--- a/src/getcolor.h
++++ b/src/getcolor.h
+@@ -56,7 +56,7 @@ extern const char *ps_math_color_formulae[];
+ 
+ /* use gray value to find index of corresponding segment in discrete gradient palette */
+ int index_from_gray (double gray);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GETCOLOR_H */
+ 
+ /* eof getcolor.h */
+diff --git a/src/gp_hist.h b/src/gp_hist.h
+index dc6b3d616..7bd790013 100644
+--- a/src/gp_hist.h
++++ b/src/gp_hist.h
+@@ -102,5 +102,5 @@ const char *history_find_by_number(int);
+ int history_find_all(char *);
+ 
+ #endif
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_HISTORY_H */
+diff --git a/src/gp_time.h b/src/gp_time.h
+index e7a0adec3..247883782 100644
+--- a/src/gp_time.h
++++ b/src/gp_time.h
+@@ -92,5 +92,5 @@ int ggmtime(struct tm *, double);
+ int tmweek(double, int);
+ /* ISO 8601 or CDC/MMWE week date -> time in seconds */
+ double weekdate( int year, int week, int day, int standard );
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_GP_TIME_H */
+diff --git a/src/gpexecute.h b/src/gpexecute.h
+index 1f28309fe..eb7d2688f 100644
+--- a/src/gpexecute.h
++++ b/src/gpexecute.h
+@@ -80,5 +80,5 @@ extern int buffered_output_pending;
+ 
+ 
+ void gp_exec_event(char type, int mx, int my, int par1, int par2, int winid);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GPEXECUTE_H */
+diff --git a/src/gplocale.c b/src/gplocale.c
+index 27fb9ae45..9a2e6e4c4 100644
+--- a/src/gplocale.c
++++ b/src/gplocale.c
+@@ -38,6 +38,10 @@
+ #include "term_api.h"
+ #include "util.h"
+ 
++#ifdef GDMP_BUILD
++#include "alloc.h"
++#endif
++
+ /* Day and month names controlled by 'set locale'.
+  * These used to be defined in national.h but internationalization via locale
+  * is now a bit more common than it was last century.
+diff --git a/src/graph3d.h b/src/graph3d.h
+index 1032727a1..21ab3fca3 100644
+--- a/src/graph3d.h
++++ b/src/graph3d.h
+@@ -201,5 +201,5 @@ void map3d_position_double(struct position *pos, double *x, double *y, const cha
+ void map3d_position_r(struct position *pos, int *x, int *y, const char *what);
+ void map3d_position_r_double(struct position *pos, double *x, double *y, const char *what);
+ 
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_GRAPH3D_H */
+diff --git a/src/graphics.h b/src/graphics.h
+index f81bb6c9f..862603841 100644
+--- a/src/graphics.h
++++ b/src/graphics.h
+@@ -131,5 +131,5 @@ void place_pixmaps(int layer, int dimensions);
+ 
+ int filter_boxplot(struct curve_points *);
+ void attach_title_to_plot(struct curve_points *this_plot, legend_key *key);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_GRAPHICS_H */
+diff --git a/src/help.h b/src/help.h
+index 14fd5d9df..36e3fcb9d 100644
+--- a/src/help.h
++++ b/src/help.h
+@@ -45,11 +45,18 @@
+ extern TBOOLEAN help_sort_by_rows;
+ 
+ /* Prototypes from file "help.c" */
+-
++#ifndef GDMP_BUILD
+ int  help(char *keyword, char *path, TBOOLEAN *subtopics);
+ void FreeHelp(void);
+ void StartOutput(void);
+ void OutLine(const char *line);
+ void EndOutput(void);
+-
++#else
++static int  help(char *keyword, char *path, TBOOLEAN *subtopics) { return 0; }
++static void FreeHelp(void) {}
++static void StartOutput(void) {}
++static void OutLine(const char *line) {}
++static void EndOutput(void) {}
++#endif
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_HELP_H */
+diff --git a/src/hidden3d.h b/src/hidden3d.h
+index 27f08fdbb..bf422bd90 100644
+--- a/src/hidden3d.h
++++ b/src/hidden3d.h
+@@ -63,5 +63,5 @@ void term_hidden_line_removal(void);
+ void plot3d_hidden(struct surface_points *plots, int pcount);
+ void draw_line_hidden(p_vertex, p_vertex, lp_style_type *);
+ void draw_label_hidden(p_vertex, lp_style_type *, int, int);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_HIDDEN3D_H */
+diff --git a/src/internal.c b/src/internal.c
+index 71708a129..3ed32813c 100644
+--- a/src/internal.c
++++ b/src/internal.c
+@@ -2083,6 +2083,7 @@ sprintf_specifier(const char* format)
+ void
+ f_system(union argument *arg)
+ {
++#ifndef GDMP_BUILD
+     struct value val, result;
+     char *output;
+     int output_len, ierr;
+@@ -2111,6 +2112,7 @@ f_system(union argument *arg)
+ 
+     gpfree_string(&result); /* free output */
+     gpfree_string(&val);    /* free command string */
++#endif
+ }
+ 
+ 
+diff --git a/src/internal.h b/src/internal.h
+index 8a511af1c..cf3566d19 100644
+--- a/src/internal.h
++++ b/src/internal.h
+@@ -99,5 +99,5 @@ void f_lookup(union argument *x);
+ void f_trim(union argument *x);
+ void f_split(union argument *x);
+ void f_join(union argument *x);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_INTERNAL_H */
+diff --git a/src/interpol.h b/src/interpol.h
+index f4dba39c5..8865dc5a6 100644
+--- a/src/interpol.h
++++ b/src/interpol.h
+@@ -60,5 +60,5 @@ spline_coeff *cp_tridiag(struct coordinate *first_point, int num_points,
+ int compare_x(SORTFUNC_ARGS p1, SORTFUNC_ARGS p2);
+ int compare_z(SORTFUNC_ARGS p1, SORTFUNC_ARGS p2);
+ int compare_xyz(SORTFUNC_ARGS p1, SORTFUNC_ARGS p2);
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_INTERPOL_H */
+diff --git a/src/jitter.h b/src/jitter.h
+index 2fa8ac98a..21cdf5b6c 100644
+--- a/src/jitter.h
++++ b/src/jitter.h
+@@ -29,5 +29,5 @@ extern void set_jitter( void );
+ extern void show_jitter( void );
+ extern void unset_jitter( void );
+ extern void save_jitter( FILE * );
+-
++#include "gdmp_disable_io.h"
+ #endif
+diff --git a/src/libcerf.h b/src/libcerf.h
+index 37317fd3d..8d16f740d 100644
+--- a/src/libcerf.h
++++ b/src/libcerf.h
+@@ -9,3 +9,5 @@ void f_VP_fwhm(union argument *z);
+ void f_FresnelC(union argument *z);
+ void f_FresnelS(union argument *z);
+ #endif
++
++#include "gdmp_disable_io.h"
+diff --git a/src/loadpath.c b/src/loadpath.c
+index 07bdeadbb..e5751c5f2 100644
+--- a/src/loadpath.c
++++ b/src/loadpath.c
+@@ -67,6 +67,7 @@ static char *p, *last, *envptr, *limit;
+ void
+ init_loadpath()
+ {
++#ifndef GDMP_BUILD
+     /* Init loadpath from environment */
+     assert(loadpath == NULL);
+     if (!loadpath)
+@@ -84,6 +85,9 @@ init_loadpath()
+     }
+     /* point to env portion of loadpath */
+     envptr = loadpath;
++#else
++	envptr = loadpath = NULL;
++#endif
+ }
+ 
+ void
+diff --git a/src/misc.c b/src/misc.c
+index a2d0604bd..29c096574 100644
+--- a/src/misc.c
++++ b/src/misc.c
+@@ -719,6 +719,7 @@ static char *push_term_opts = NULL;
+ void
+ push_terminal(int is_interactive)
+ {
++#ifndef GDMP_BUILD
+     if (term) {
+ 	free(push_term_name);
+ 	free(push_term_opts);
+@@ -730,6 +731,7 @@ push_terminal(int is_interactive)
+ 	if (is_interactive)
+ 	    fputs("\tcurrent terminal type is unknown\n", stderr);
+     }
++#endif
+ }
+ 
+ /* Pop the terminal.
+@@ -738,6 +740,7 @@ push_terminal(int is_interactive)
+ void
+ pop_terminal()
+ {
++#ifndef GDMP_BUILD
+     if (push_term_name != NULL) {
+ 	char *s;
+ 	int i = strlen(push_term_name) + 11;
+@@ -757,6 +760,7 @@ pop_terminal()
+ 	    fprintf(stderr,"   restored terminal is %s %s\n", term->name, ((*term_options) ? term_options : ""));
+     } else
+ 	fprintf(stderr,"No terminal has been pushed yet\n");
++#endif
+ }
+ 
+ 
+diff --git a/src/misc.h b/src/misc.h
+index 00de0667d..d91d15556 100644
+--- a/src/misc.h
++++ b/src/misc.h
+@@ -112,4 +112,5 @@ typedef struct lf_state_struct {
+ }  LFS;
+ extern LFS *lf_head;
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_MISC_H */
+diff --git a/src/mouse.h b/src/mouse.h
+index ae1112300..99b3b99e4 100644
+--- a/src/mouse.h
++++ b/src/mouse.h
+@@ -115,4 +115,5 @@ void bind_remove_all(void);
+ /* mechanism for the core code to query the last-known mouse coordinates */
+ extern void get_last_mouse_xy( double *x, double *y );
+ 
++#include "gdmp_disable_io.h"
+ #endif /* !_HAVE_MOUSE_H */
+diff --git a/src/mousecmn.h b/src/mousecmn.h
+index 02f0ecd34..bba74b313 100644
+--- a/src/mousecmn.h
++++ b/src/mousecmn.h
+@@ -179,5 +179,5 @@ struct t_gpPMmenu {
+ 
+ #endif
+ 
+-
++#include "gdmp_disable_io.h"
+ #endif /* MOUSECMN_H */
+diff --git a/src/parse.h b/src/parse.h
+index f5585098c..2e7b8166f 100644
+--- a/src/parse.h
++++ b/src/parse.h
+@@ -130,5 +130,5 @@ void parse_link_via(struct udft_entry *);
+ 
+ /* Magic number used instead of actual column number in $# */
+ #define DOLLAR_NCOLUMNS -123
+-
++#include "gdmp_disable_io.h"
+ #endif /* PARSE_H */
+diff --git a/src/plot.c b/src/plot.c
+index 09cadaa0c..c27c4e0eb 100644
+--- a/src/plot.c
++++ b/src/plot.c
+@@ -87,6 +87,10 @@
+ #  endif
+ #endif
+ 
++#ifdef GDMP_BUILD
++#undef _WIN32
++#endif
++
+ /* enable gnuplot history with readline */
+ #ifdef GNUPLOT_HISTORY
+ #  ifndef GNUPLOT_HISTORY_FILE
+@@ -209,9 +213,12 @@ bail_to_command_line()
+ #if defined(_WIN32)
+ int
+ gnu_main(int argc_orig, char **argv)
+-#else
++#elif !defined(GDMP_BUILD)
+ int
+ main(int argc_orig, char **argv)
++#else
++int
++gp_main(int argc_orig, char **argv)
+ #endif
+ {
+     int i;
+@@ -227,12 +234,14 @@ main(int argc_orig, char **argv)
+ 
+ /* make sure that we really have revoked root access, this might happen if
+    gnuplot is compiled without vga support but is installed suid by mistake */
++#ifndef GDMP_BUILD
+ #ifdef __linux__
+     if (setuid(getuid()) != 0) {
+ 	fprintf(stderr,"gnuplot: refusing to run at elevated privilege\n");
+ 	exit(EXIT_FAILURE);
+     }
+ #endif
++#endif
+ 
+ /* HBB: Seems this isn't needed any more for DJGPP V2? */
+ /* HBB: disable all floating point exceptions, just keep running... */
+@@ -412,11 +421,15 @@ main(int argc_orig, char **argv)
+     /* April 2017:  We used to call init_terminal() here, but now   */
+     /* We defer initialization until error handling has been set up. */
+ 
++#ifndef GDMP_BUILD
+ # if defined(_WIN32) && !defined(WGP_CONSOLE)
+     interactive = TRUE;
+ # else
+     interactive = isatty(fileno(stdin));
+ # endif
++#else
++	interactive = TRUE;
++#endif
+ 
+     /* Note: we want to know whether this is an interactive session so that we can
+      * decide whether or not to write status information to stderr.  The old test
+@@ -607,12 +620,16 @@ main(int argc_orig, char **argv)
+ 	    ) {
+ 		FPRINTF((stderr,"'persist' command line option recognized\n"));
+ 	    } else if (strcmp(*argv, "-") == 0) {
++#ifndef GDMP_BUILD
+ #if defined(_WIN32) && !defined(WGP_CONSOLE)
+ 		TextShow(&textwin);
+ 		interactive = TRUE;
+ #else
+ 		interactive = isatty(fileno(stdin));
+ #endif
++#else
++		interactive = TRUE;
++#endif
+ 
+ RECOVER_FROM_ERROR_IN_DASH:
+ 		reading_from_dash = TRUE;
+@@ -722,12 +739,14 @@ RECOVER_FROM_ERROR_IN_DASH:
+ void
+ interrupt_setup()
+ {
++#ifndef GDMP_BUILD
+     (void) signal(SIGINT, (sigfunc) inter);
+ 
+ #ifdef SIGPIPE
+     /* ignore pipe errors, this might happen with set output "|head" */
+     (void) signal(SIGPIPE, SIG_IGN);
+ #endif /* SIGPIPE */
++#endif
+ }
+ 
+ 
+@@ -840,6 +859,7 @@ load_rcfile(int where)
+ void
+ get_user_env()
+ {
++#ifndef GDMP_BUILD
+     if (user_homedir == NULL) {
+ 	const char *env_home;
+ 
+@@ -865,6 +885,7 @@ get_user_env()
+ 
+ 	user_shell = (const char *) gp_strdup(env_shell);
+     }
++#endif
+ }
+ 
+ /* expand tilde in path
+@@ -1085,3 +1106,30 @@ RelativePathToGnuplot(const char * path)
+     return rel_path;
+ }
+ #endif
++
++#ifdef GDMP_BUILD
++int GDMP_DECLSPEC GDMP_STDCALL gdmp_init() {
++	gpoutfile = stdout;
++	skip_gnuplotrc = TRUE;
++
++	add_udv_by_name("GNUTERM");
++	add_udv_by_name("I");
++	add_udv_by_name("NaN");
++	init_constants();
++    udv_user_head = &(udv_NaN->next_udv);
++
++	init_memory();
++	memset(&sm_palette, 0, sizeof(sm_palette));
++	init_fit();
++	init_gadgets();
++	init_terminal();
++	update_gpval_variables(3);
++	init_session();
++
++	return 0;
++}
++
++int GDMP_DECLSPEC GDMP_STDCALL gdmp_get_gnuplot_version(char *buf, unsigned int buf_size) {
++	return snprintf(buf, buf_size, "%s.%s", gnuplot_version, gnuplot_patchlevel);
++}
++#endif
+diff --git a/src/plot2d.c b/src/plot2d.c
+index 2f4bf47f2..f37ddf8c5 100644
+--- a/src/plot2d.c
++++ b/src/plot2d.c
+@@ -379,7 +379,6 @@ refresh_bounds(struct curve_points *first_plot, int nplots)
+     }
+ }
+ 
+-
+ /* current_plot->token is after datafile spec, for error reporting
+  * it will later be moved past title/with/linetype/pointtype
+  */
+@@ -4015,6 +4014,11 @@ parametric_fixup(struct curve_points *start_plot, int *plot_num)
+ 	    /* Here's a FUNC parametric function defined as two parts. */
+ 	    struct curve_points *yp = xp->next;
+ 
++#ifdef GDMP_BUILD
++		if (!yp)
++			break;
++#endif
++
+ 	    --(*plot_num);
+ 
+ 	    assert(xp->p_count == yp->p_count);
+diff --git a/src/plot2d.h b/src/plot2d.h
+index f18174753..150bb1fa1 100644
+--- a/src/plot2d.h
++++ b/src/plot2d.h
+@@ -77,4 +77,5 @@ void parse_plot_title(struct curve_points *this_plot,
+ 			char *xtitle, char *ytitle, TBOOLEAN *set_title);
+ void reevaluate_plot_title(struct curve_points *this_plot);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_PLOT2D_H */
+diff --git a/src/pm3d.h b/src/pm3d.h
+index 432ec3575..9e772e548 100644
+--- a/src/pm3d.h
++++ b/src/pm3d.h
+@@ -181,7 +181,7 @@ TBOOLEAN is_plot_with_palette(void);
+ TBOOLEAN is_plot_with_colorbox(void);
+ 
+ #endif /* PM3D_H */
+-
++#include "gdmp_disable_io.h"
+ #endif /* TERM_HELP */
+ 
+ /* eof pm3d.h */
+diff --git a/src/readline.h b/src/readline.h
+index 8e0553811..b06041a21 100644
+--- a/src/readline.h
++++ b/src/readline.h
+@@ -64,5 +64,5 @@ void wrap_readline_signal_handler(void);
+ #else
+ #define wrap_readline_signal_handler()
+ #endif
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_READLINE_H */
+diff --git a/src/save.h b/src/save.h
+index f8e691308..2f18826b8 100644
+--- a/src/save.h
++++ b/src/save.h
+@@ -46,6 +46,7 @@
+ extern const char *coord_msg[];
+ 
+ /* Prototypes of functions exported by save.c */
++#ifndef GDMP_BUILD
+ void save_functions(FILE *fp);
+ void save_variables(FILE *fp);
+ void save_datablocks(FILE *fp);
+@@ -80,5 +81,41 @@ void save_bars(FILE *);
+ void save_array_content(FILE *, struct value *);
+ void save_label_style( FILE *fp, struct text_label *this_label );
+ void save_contourfill(FILE *fp);
+-
++#else
++static void save_functions(FILE *fp) {}
++static void save_variables(FILE *fp) {}
++static void save_datablocks(FILE *fp) {}
++static void save_colormaps(FILE *fp) {}
++static void save_set(FILE *fp) {}
++static void save_term(FILE *fp) {}
++static void save_all(FILE *fp) {}
++static void save_axis_label_or_title(FILE *fp, char *name, char *suffix,
++			struct text_label *label, TBOOLEAN savejust) {}
++static void save_pm3d_lighting(FILE *, char *) {}
++static void save_position(FILE *, struct position *, int, TBOOLEAN) {}
++static void save_prange(FILE *, struct axis *) {}
++static void save_link(FILE *, struct axis *) {}
++static void save_nonlinear(FILE *, struct axis *) {}
++static void save_textcolor(FILE *, const struct t_colorspec *) {}
++static void save_pm3dcolor(FILE *, const struct t_colorspec *) {}
++static void save_fillstyle(FILE *, const struct fill_style_type *) {}
++static void save_offsets(FILE *, char *) {}
++static void save_histogram_opts(FILE *fp) {}
++static void save_pixmaps(FILE *fp) {}
++static void save_object(FILE *, int) {}
++static void save_walls(FILE *) {}
++static void save_style_textbox(FILE *) {}
++static void save_style_parallel(FILE *) {}
++static void save_style_spider(FILE *) {}
++static void save_data_func_style(FILE *, const char *, enum PLOT_STYLE) {}
++static void save_linetype(FILE *, lp_style_type *, TBOOLEAN) {}
++static void save_dashtype(FILE *, int, const t_dashtype *) {}
++static void save_num_or_time_input(FILE *, double x, struct axis *) {}
++static void save_axis_format(FILE *fp, AXIS_INDEX axis) {}
++static void save_bars(FILE *) {}
++static void save_array_content(FILE *, struct value *) {}
++static void save_label_style( FILE *fp, struct text_label *this_label ) {}
++static void save_contourfill(FILE *fp) {}
++#endif
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_SAVE_H */
+diff --git a/src/scanner.h b/src/scanner.h
+index 19fe5f9c0..e8a9ed0e9 100644
+--- a/src/scanner.h
++++ b/src/scanner.h
+@@ -49,4 +49,5 @@ extern int curly_brace_count;
+ TBOOLEAN legal_identifier(char *p);
+ int scanner(char **expression, size_t *line_lengthp);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_SCANNER_H */
+diff --git a/src/set.c b/src/set.c
+index d3106a7c1..53f3fe4cc 100644
+--- a/src/set.c
++++ b/src/set.c
+@@ -2177,6 +2177,7 @@ set_history()
+ static void
+ set_pixmap()
+ {
++#ifndef GDMP_BUILD
+     t_pixmap *this_pixmap = NULL;
+     t_pixmap *new_pixmap = NULL;
+     t_pixmap *prev_pixmap = NULL;
+@@ -2282,6 +2283,9 @@ set_pixmap()
+ 
+     /* This will open the file and read in the pixmap pixels */
+     df_read_pixmap(this_pixmap);
++#else
++	c_token++;
++#endif
+ }
+ 
+ /* process 'set isosamples' command */
+@@ -2806,6 +2810,7 @@ assign_label_tag()
+ static void
+ set_loadpath()
+ {
++#ifndef GDMP_BUILD
+     /* We pick up all loadpath elements here before passing
+      * them on to set_var_loadpath()
+      */
+@@ -2835,6 +2840,9 @@ set_loadpath()
+ 	set_var_loadpath(collect);
+ 	free(collect);
+     }
++#else
++	c_token++;
++#endif
+ }
+ 
+ /* process 'set fontpath' command */
+@@ -2842,12 +2850,16 @@ set_loadpath()
+ static void
+ set_fontpath()
+ {
++#ifndef GDMP_BUILD
+     char *newpath;
+     c_token++;
+     if ((newpath = try_to_get_string())) {
+ 	free(PS_fontpath);
+ 	PS_fontpath = newpath;
+     }
++#else
++	c_token++;
++#endif
+ }
+ 
+ 
+@@ -3345,6 +3357,7 @@ set_origin()
+ static void
+ set_output()
+ {
++#ifndef GDMP_BUILD
+     char *testfile;
+ 
+     c_token++;
+@@ -3371,7 +3384,9 @@ set_output()
+ 
+     /* Invalidate previous palette */
+     invalidate_palette();
+-
++#else
++	c_token++;
++#endif
+ }
+ 
+ 
+@@ -3379,6 +3394,7 @@ set_output()
+ static void
+ set_print()
+ {
++#ifndef GDMP_BUILD
+     TBOOLEAN append_p = FALSE;
+     char *testfile = NULL;
+ 
+@@ -3410,12 +3426,17 @@ set_print()
+ 	print_set_output(testfile, FALSE, append_p);
+     } else
+ 	int_error(c_token, "expecting filename or datablock");
++#else
++	print_set_output(NULL, FALSE, FALSE);
++	c_token++;
++#endif
+ }
+ 
+ /* process 'set psdir' command */
+ static void
+ set_psdir()
+ {
++#ifndef GDMP_BUILD
+     c_token++;
+     if (END_OF_COMMAND) {	/* no file specified */
+ 	free(PS_psdir);
+@@ -3424,6 +3445,9 @@ set_psdir()
+ 	gp_expand_tilde(&PS_psdir);
+     } else
+ 	int_error(c_token, "expecting filename");
++#else
++	c_token++;
++#endif
+ }
+ 
+ /* process 'set overflow' command */
+@@ -6644,6 +6668,7 @@ rrange_to_xy()
+ static void
+ set_datafile()
+ {
++#ifndef GDMP_BUILD
+     c_token++;
+     while (!END_OF_COMMAND) {
+ 	if (almost_equals(c_token,"miss$ing"))
+@@ -6675,4 +6700,7 @@ set_datafile()
+ 	} else
+ 	    int_error(c_token,"expecting datafile modifier");
+     }
++#else
++	c_token++;
++#endif
+ }
+diff --git a/src/setshow.h b/src/setshow.h
+index 8ad001f51..28bcf329f 100644
+--- a/src/setshow.h
++++ b/src/setshow.h
+@@ -68,4 +68,5 @@ extern struct ticmark * prune_dataticks(struct ticmark *list);
+ 
+ extern void reset_spotlight(void);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_SETSHOW_H */
+diff --git a/src/specfun.h b/src/specfun.h
+index 691183185..11ec21543 100644
+--- a/src/specfun.h
++++ b/src/specfun.h
+@@ -67,4 +67,5 @@ void f_voigt(union argument *x);
+ 
+ void f_SynchrotronF(union argument *x);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_SPECFUN_H */
+diff --git a/src/standard.h b/src/standard.h
+index 84ee4e0a8..0aba486c7 100644
+--- a/src/standard.h
++++ b/src/standard.h
+@@ -99,4 +99,5 @@ void f_tmweek(union argument *x);
+ void f_weekdate_iso(union argument *x);
+ void f_weekdate_cdc(union argument *x);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_STANDARD_H */
+diff --git a/src/stats.h b/src/stats.h
+index 15241de81..a38ff1a67 100644
+--- a/src/stats.h
++++ b/src/stats.h
+@@ -7,4 +7,5 @@
+ 
+ void statsrequest(void);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_STAT_H */
+diff --git a/src/stdfn.c b/src/stdfn.c
+index 846912f50..742c2702a 100644
+--- a/src/stdfn.c
++++ b/src/stdfn.c
+@@ -60,6 +60,10 @@
+ # include <complex.h>
+ #endif
+ 
++#ifdef GDMP_BUILD
++#undef _WIN32
++#endif
++
+ /*
+  * ANSI C functions
+  */
+@@ -126,6 +130,12 @@ do {                      \
+ 
+ /* strerror() */
+ #ifndef HAVE_STRERROR
++int sys_nerr = 0;
++#ifndef GDMP_BUILD
++char *sys_errlist[];
++#else
++char *sys_errlist[1];
++#endif
+ 
+ char *
+ strerror(int no)
+diff --git a/src/stdfn.h b/src/stdfn.h
+index 7389e916e..80d3ee5f8 100644
+--- a/src/stdfn.h
++++ b/src/stdfn.h
+@@ -331,6 +331,11 @@ char * gp_getcwd(char *path, size_t len);
+ # endif
+ #endif
+ 
++#ifdef GDMP_BUILD
++#undef GP_GETCWD
++#define GP_GETCWD(path,len) (NULL)
++#endif
++
+ #if defined(OS2) && !defined(__KLIBC__)
+ void usleep(unsigned long microseconds);
+ #endif
+@@ -587,4 +592,5 @@ unsigned int sleep(unsigned int);
+ 
+ double not_a_number(void);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* STDFN_H */
+diff --git a/src/syscfg.h b/src/syscfg.h
+index 987426a81..103faec72 100644
+--- a/src/syscfg.h
++++ b/src/syscfg.h
+@@ -132,6 +132,7 @@
+ /* Need to include definition of fopen before re-defining */
+ #include <stdlib.h>
+ #include <stdio.h>
++#include "gdmp_disable_io.h"
+ FILE * win_fopen(const char *filename, const char *mode);
+ #define fopen win_fopen
+ #ifndef USE_FAKEPIPES
+@@ -256,7 +257,9 @@ FILE * win_popen(const char *filename, const char *mode);
+ # if defined(_MSC_VER)
+ #   define off_t __int64
+ # elif defined(__MINGW32__)
++#ifndef GDMP_BUILD
+ #   define off_t off64_t
++#endif
+ # elif !defined(HAVE_OFF_T)
+ #   define off_t long
+ # endif
+diff --git a/src/tabulate.h b/src/tabulate.h
+index 7adfd323d..a7c85526a 100644
+--- a/src/tabulate.h
++++ b/src/tabulate.h
+@@ -17,4 +17,5 @@ extern TBOOLEAN table_mode;
+ extern char *table_sep;
+ extern struct at_type *table_filter_at;
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_TABULATE_H */
+diff --git a/src/term.c b/src/term.c
+index 220fe98f3..522d29359 100644
+--- a/src/term.c
++++ b/src/term.c
+@@ -102,6 +102,10 @@ char* mouse_alt_string = NULL;
+ #define MOUSE_COORDINATES_FUNCTION 8	/* Normally an enum in mouse.h */
+ #endif
+ 
++#ifdef GDMP_BUILD
++#undef _WIN32
++#endif
++
+ #ifdef _WIN32
+ # include "win/winmain.h"
+ # include "win/wcommon.h"
+@@ -1536,7 +1540,11 @@ set_term()
+ 
+     if (!END_OF_COMMAND) {
+ 	input_name = gp_input_line + token[c_token].start_index;
++#ifndef GDMP_BUILD
+ 	t = change_term(input_name, token[c_token].length);
++#else
++	t = change_term("gdmp", 4);
++#endif
+ 	if (!t && (input_name = try_to_get_string())) {
+ 	    if (strchr(input_name, ' '))
+ 		*strchr(input_name, ' ') = '\0';
+diff --git a/src/term.h b/src/term.h
+index 37f01ae1f..11b18a168 100644
+--- a/src/term.h
++++ b/src/term.h
+@@ -57,6 +57,10 @@
+ #define POSTSCRIPT_DRIVER 1	/* include post.trm */
+ #define PSLATEX_DRIVER 1	/* include pslatex.trm */
+ 
++#ifdef GDMP_BUILD
++#define DEFAULTTERM "gdmp"
++#endif
++
+ #if defined(PSLATEX_DRIVER) && !defined(POSTSCRIPT_DRIVER)
+ #define POSTSCRIPT_DRIVER
+ #endif
+@@ -93,7 +97,9 @@
+ #  include "pm.trm"		/* OS/2 Presentation Manager */
+ # endif
+ # ifdef _WIN32
++#ifndef GDMP_BUILD
+ #  include "win.trm"		/* MS-Windows */
++#endif
+ # endif
+ #else /* include all applicable terminals not commented out */
+ 
+@@ -121,8 +127,10 @@
+ /* Windows */
+ #ifdef _WIN32
+ /* Windows GDI/GDI+/Direct2D */
++#ifndef GDMP_BUILD
+ # include "win.trm"
+ #endif
++#endif
+ 
+ /* Apple Mac OS X */
+ #ifdef HAVE_FRAMEWORK_AQUATERM
+@@ -150,7 +158,9 @@
+ 
+ /* This is not really a terminal, it generates a help section for */
+ /* using the linux console. */
++#ifndef GDMP_BUILD
+ # include "linux-vgagl.trm"
++#endif
+ 
+ /* gpic for groff */
+ #ifdef HAVE_GPIC
+@@ -195,10 +205,14 @@
+ #endif
+ 
+ /* HTML Canvas terminal */
++#ifndef GDMP_BUILD
+ #include "canvas.trm"
++#endif
+ 
+ /* Computer Graphics Metafile (eg ms office) */
++#ifndef GDMP_BUILD
+ #include "cgm.trm"
++#endif
+ 
+ /* CorelDraw! eps format */
+ /* #include "corel.trm"  */
+@@ -227,10 +241,14 @@
+  * Someone please update this terminal to adhere to a newer DXF standard!
+  * http://images.autodesk.com/adsk/files/autocad_2012_pdf_dxf-reference_enu.pdf
+  */
++#ifndef GDMP_BUILD
+ #include "dxf.trm"
++#endif
+ 
+ /* Enhanced Metafile Format driver */
++#ifndef GDMP_BUILD
+ #include "emf.trm"
++#endif
+ 
+ /* Roland DXY800A plotter */
+ /* #include "dxy.trm" */
+@@ -238,7 +256,9 @@
+ /* #include "excl.trm" */
+ 
+ /* fig graphics */
++#ifndef GDMP_BUILD
+ #include "fig.trm"
++#endif
+ 
+ /* geographical info system */
+ /* #include "grass.trm" */
+@@ -250,7 +270,9 @@
+ /* #include "hp2648.trm" */
+ 
+ /* HP7475, HP7220 plotters, and (hopefully) lots of others */
++#ifndef GDMP_BUILD
+ #include "hpgl.trm"
++#endif
+ 
+ #ifndef NO_BITMAP_SUPPORT
+ /* HP DeskJet 500 C */
+@@ -295,13 +317,19 @@
+ /* W3C Scalable Vector Graphics file */
+ #include "svg.trm"
+ 
++#ifdef GDMP_BUILD
++#include "gdmp.trm"
++#endif
++
+ /* x11 tgif tool */
+ #ifdef HAVE_TGIF
+ #include "tgif.trm"
+ #endif
+ 
+ /* tcl/tk with perl extensions */
++#ifndef GDMP_BUILD
+ #include "tkcanvas.trm"
++#endif
+ 
+ #ifndef NO_BITMAP_SUPPORT
+ 
+@@ -337,7 +365,9 @@
+ 
+ 
+ /* LaTeX2e picture environment */
++#ifndef GDMP_BUILD
+ #include "pict2e.trm"
++#endif
+ 
+ /* latex/tex with picture in postscript */
+ #ifdef PSLATEX_DRIVER
+@@ -345,10 +375,14 @@
+ #endif
+ 
+ /* LaTeX picture environment with PSTricks macros */
++#ifndef GDMP_BUILD
+ #include "pstricks.trm"
++#endif
+ 
+ /* TeXDraw drawing package for LaTeX */
++#ifndef GDMP_BUILD
+ #include "texdraw.trm"
++#endif
+ 
+ /* METAFONT */
+ #ifdef WITH_METAFONT
+@@ -361,7 +395,9 @@
+ #endif
+ 
+ /* ConTeXt */
++#ifndef GDMP_BUILD
+ #include "context.trm"
++#endif
+ 
+ /*
+  * DEPRECATED latex terminals no longer built by default
+@@ -407,5 +443,5 @@
+ #ifdef QTTERM
+ # include "qt.trm"
+ #endif
+-
++#include "gdmp_disable_io.h"
+ #endif /* !SHORT_TERMLIST */
+diff --git a/src/term_api.h b/src/term_api.h
+index fd1508768..c470d913e 100644
+--- a/src/term_api.h
++++ b/src/term_api.h
+@@ -536,4 +536,5 @@ void check_for_mouse_events(void);
+ /* shared routined to add backslash in front of reserved characters */
+ char *escape_reserved_chars(const char *str, const char *reserved);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_TERM_API_H */
+diff --git a/src/util.c b/src/util.c
+index 2fa78ee3d..3bd7b3b52 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -1194,7 +1194,9 @@ common_error_exit()
+     /* Load error state variables */
+     update_gpval_variables(2);
+ 
++#ifndef GDMP_BUILD
+     bail_to_command_line();
++#endif
+ }
+ 
+ /* Warn without bailing out to command line. Not a user error */
+diff --git a/src/util.h b/src/util.h
+index d4ff28078..d80c40ff3 100644
+--- a/src/util.h
++++ b/src/util.h
+@@ -100,11 +100,11 @@ void gprintf_value(char *, size_t, char *, double, struct value *);
+ 
+ /* Error message handling */
+ #if defined(VA_START) && defined(STDC_HEADERS)
+-#  if defined(__GNUC__)
++#  if defined(__GNUC__) && !defined(GDMP_BUILD)
+     void os_error(int, const char *, ...) __attribute__((noreturn));
+     void int_error(int, const char *, ...) __attribute__((noreturn));
+     void common_error_exit(void) __attribute__((noreturn));
+-#  elif defined(_MSC_VER)
++#  elif defined(_MSC_VER) && !defined(GDMP_BUILD)
+     __declspec(noreturn) void os_error(int, const char *, ...);
+     __declspec(noreturn) void int_error(int, const char *, ...);
+     __declspec(noreturn) void common_error_exit();
+@@ -141,4 +141,5 @@ char *texify_title(char *title, int plot_type);
+ 
+ TBOOLEAN in_theta_wedge( double t, double tlow, double thigh );
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_UTIL_H */
+diff --git a/src/util3d.h b/src/util3d.h
+index 65b93aa70..7c6797c4f 100644
+--- a/src/util3d.h
++++ b/src/util3d.h
+@@ -92,4 +92,5 @@ void draw3d_point(p_vertex v, struct lp_style_type *lp);
+ void polyline3d_start(p_vertex v1);
+ void polyline3d_next(p_vertex v2, struct lp_style_type *lp);
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_UTIL3D_H */
+diff --git a/src/version.c b/src/version.c
+index 2b04d428b..73b407e4d 100644
+--- a/src/version.c
++++ b/src/version.c
+@@ -37,7 +37,7 @@
+ 
+ const double gnuplot_ver = 6.0;
+ const char gnuplot_version[] = "6.0";
+-const char gnuplot_patchlevel[] = "0";
++const char gnuplot_patchlevel[] = "0-gdmp";
+ #ifdef DEVELOPMENT_VERSION
+ #include "timestamp.h"
+ #else
+@@ -49,5 +49,5 @@ const char faq_location[] = FAQ_LOCATION;
+ 
+ char *compile_options = (void *)0;	/* Will be loaded at runtime */
+ 
+-const char bug_email[] = "gnuplot-beta@lists.sourceforge.net";
+-const char help_email[] = "gnuplot-beta@lists.sourceforge.net";
++const char bug_email[] = "https://github.com/dmrokan/gdmatplot/issues";
++const char help_email[] = "https://github.com/dmrokan/gdmatplot/issues";
+diff --git a/src/version.h b/src/version.h
+index fa1e95acb..be33bb49e 100644
+--- a/src/version.h
++++ b/src/version.h
+@@ -46,4 +46,5 @@ extern const char help_email[];
+ 
+ extern char *compile_options;
+ 
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_VERSION_H */
+diff --git a/src/vms.h b/src/vms.h
+index d36147a97..b0a3d9987 100644
+--- a/src/vms.h
++++ b/src/vms.h
+@@ -57,5 +57,5 @@ void vms_init_screen();
+   FILE *popen(char *, char *);
+   int pclose(FILE *);
+ #endif
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_VMS_H */
+diff --git a/src/voxelgrid.h b/src/voxelgrid.h
+index 1e63a5a24..4be65513b 100644
+--- a/src/voxelgrid.h
++++ b/src/voxelgrid.h
+@@ -51,4 +51,5 @@ void vgrid_stats(vgrid *vgrid);
+ /* variables */
+ extern isosurface_opt isosurface_options;
+ 
++#include "gdmp_disable_io.h"
+ #endif /* VOXELGRID_H */
+diff --git a/src/watch.h b/src/watch.h
+index c43503190..1dd8e96a1 100644
+--- a/src/watch.h
++++ b/src/watch.h
+@@ -55,5 +55,5 @@ void show_style_watchpoint(void);
+ #define show_style_watchpoint()
+ 
+ #endif	/* USE_WATCHPOINTS */
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_WATCH_H */
+diff --git a/src/xdg.h b/src/xdg.h
+index 7510444ee..fc354b029 100644
+--- a/src/xdg.h
++++ b/src/xdg.h
+@@ -3,7 +3,9 @@
+ 
+ #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+ 
++#ifndef GDMP_BUILD
+ #define USE_XDG_BASEDIR
++#endif
+ 
+ #include "syscfg.h" /* for TBOOLEAN */
+ 
+@@ -23,6 +25,6 @@ char *xdg_get_path(XDGVarType idx, const char *fname,
+ 		    TBOOLEAN subdir, TBOOLEAN create);
+ 
+ #endif /* USE_XDG_BASEDIR */
+-
++#include "gdmp_disable_io.h"
+ #endif /* GNUPLOT_XDG_H */
+ 
+diff --git a/term/gdmp.trm b/term/gdmp.trm
+new file mode 100644
+index 000000000..c3d837bf5
+--- /dev/null
++++ b/term/gdmp.trm
+@@ -0,0 +1,1841 @@
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GNUPLOT - gdmp.trm
++
++	This file is included by gnuplot/term.c and based on gnuplot/term/svg.trm
++
++	AUTHOR
++
++		Okan Demir
++		https://github.com/dmrokan/gdmatplot/issues
++
++------------------------------------------------------------------------------------------------------------------------------------*/
++
++/*[
++ * Copyright 2024 Okan Demir
++ *
++ * Permission to use, copy, and distribute this software and its
++ * documentation for any purpose with or without fee is hereby granted,
++ * provided that the above copyright notice appear in all copies and
++ * that both that copyright notice and this permission notice appear
++ * in supporting documentation.
++ *
++ * Permission to modify the software is granted, but not the right to
++ * distribute the complete modified source code.  Modifications are to
++ * be distributed as patches to the released version.  Permission to
++ * distribute binaries produced by compiling modified sources is granted,
++ * provided you
++ *   1. distribute the corresponding source modifications from the
++ *    released version in the form of a patch file along with the binaries,
++ *   2. add special version identification to distinguish your version
++ *    in addition to the base release version number,
++ *   3. provide your name and address as the primary contact for the
++ *    support of your modified version, and
++ *   4. retain our contact information in regard to use of the base
++ *    software.
++ * Permission to distribute the released version of the source code along
++ * with corresponding source modifications in the form of a patch file is
++ * granted with same provisions 2 through 4 for binary distributions.
++ *
++ * This software is provided "as is" without express or implied warranty
++ * to the extent permitted by applicable law.
++]*/
++
++
++#include "driver.h"
++
++#ifdef GDMP_DISABLE_CODE_CHUNK
++#undef GDMP_DISABLE_CODE_CHUNK
++#endif
++
++#define GDMP_DISABLE_CODE_CHUNK
++
++#ifndef GDMP_DEFINITIONS
++#define GDMP_DEFINITIONS
++
++// Added global symbols to disable history.c
++int gnuplot_history_size = 0;
++TBOOLEAN history_quiet = TRUE;
++TBOOLEAN history_full = FALSE;
++
++#define GDMP_OBJ ((struct GDMatPlotGNUPlotInterface *) _gdmp_matplot_object)
++#define GDMP_CALL_METHOD(method, ...) (GDMP_OBJ->methods.method(GDMP_OBJ->self, __VA_ARGS__))
++#define GDMP_CALL_METHOD0(method) (GDMP_OBJ->methods.method(GDMP_OBJ->self))
++
++struct GDMatPlotMethods {
++    void (*options)(void *);
++    void (*init)(void *);
++    void (*reset)(void *);
++    void (*text)(void *);
++    int (*scale)(void *, double, double);
++    void (*graphics)(void *);
++    void (*move)(void *, unsigned int, unsigned int);
++    void (*vector)(void *, unsigned int, unsigned int);
++    void (*linetype)(void *, int);
++    void (*put_text)(void *, unsigned int, unsigned int, const char*);
++    int (*text_angle)(void *, float);
++    int (*justify_text)(void *, int);
++    void (*point)(void *, unsigned int, unsigned int, int);
++    void (*arrow)(void *, unsigned int, unsigned int, unsigned int, unsigned int, int headstyle);
++    int (*set_font)(void *, const char *, double);
++    void (*pointsize)(void *, double);
++    void (*suspend)(void *);
++    void (*resume) (void *);
++    void (*fillbox)(void *, int, unsigned int, unsigned int, unsigned int, unsigned int);
++    void (*linewidth)(void *, double linewidth);
++    int (*make_palette)(void *, void *palette);
++    void (*previous_palette)(void *);
++    void (*set_color)(void *, unsigned int);
++    void (*filled_polygon)(void *, int, void *, int);
++    void (*image)(void *, unsigned int, unsigned int, void *, void *, unsigned int);
++    void (*enhanced_open)(void *, char * fontname, double fontsize,
++		double base, char widthflag, char showflag,
++		int overprint);
++    void (*enhanced_flush)(void *);
++    void (*enhanced_writec)(void *, int c);
++    void (*layer)(void *,  unsigned int);
++    void (*path)(void *, int p);
++    void (*hypertext)(void *, int type, const char *text);
++    void (*boxed_text)(void *, unsigned int, unsigned int, int);
++    void (*modify_plots)(void *, unsigned int operations, int plotno);
++    void (*dashtype)(void *, int type, void *custom_dash_pattern);
++
++    /* ======================================== */
++
++    void (*set_xmax)(void *, unsigned int);
++    void (*set_ymax)(void *, unsigned int);
++    void (*set_h_tic)(void *, unsigned int);
++    void (*set_v_tic)(void *, unsigned int);
++
++    void (*set_color_mode)(void *, unsigned char);
++    void (*set_linetype)(void *, int);
++    void (*set_dashpattern)(void *, const char *);
++
++    void (*set_h_char)(void *, unsigned int);
++    void (*set_v_char)(void *, unsigned int);
++
++    void (*set_gridline)(void *, unsigned int);
++    void (*set_hasgrid)(void *, unsigned int);
++    void (*set_plotno)(void *, unsigned int);
++
++    void (*set_fill_pattern)(void *, int);
++    void (*set_fill_pattern_index)(void *, unsigned int);
++    void (*set_rgb)(void *, unsigned int);
++    void (*set_patterncolor)(void *, unsigned int *);
++	void (*set_group_filled_is_open)(void *, unsigned char);
++	void (*set_in_textbox)(void *, unsigned char);
++    void (*set_xsize)(void *, unsigned int);
++    void (*set_ysize)(void *, unsigned int);
++    void (*set_xlast)(void *, unsigned int);
++    void (*set_ylast)(void *, unsigned int);
++    void (*set_linecap)(void *, int);
++	void (*set_group_is_open)(void *, unsigned char);
++	void (*set_path_is_open)(void *, unsigned char);
++
++	void (*set_fontscale)(void *, double);
++	void (*set_dashlength)(void *, double);
++	void (*set_name)(void *, const char *);
++	void (*set_linewidth_factor)(void *, double);
++	void (*set_background)(void *, int);
++
++	void (*set_linecolor)(void *, const char *);
++	void (*set_alpha)(void *, double);
++
++	void (*set_term_pointsize)(void *, double);
++	void (*set_stroke_width)(void *, double);
++
++	void (*set_pen)(void *, unsigned int, unsigned int, double);
++
++    /* ======================================== */
++
++    double tscale;
++    int flags;
++};
++
++struct GDMatPlotGNUPlotInterface {
++	struct GDMatPlotMethods methods;
++	void *self;
++};
++
++extern void *_gdmp_matplot_object;
++
++#endif
++
++
++#ifdef TERM_REGISTER
++register_term(gdmp)
++#endif
++
++#ifdef TERM_PROTO
++TERM_PUBLIC void GDMP_options(void);
++TERM_PUBLIC void GDMP_init(void);
++TERM_PUBLIC void GDMP_graphics(void);
++TERM_PUBLIC void GDMP_text(void);
++TERM_PUBLIC void GDMP_linetype(int linetype);
++TERM_PUBLIC void GDMP_dashtype(int type, t_dashtype *custom_dash_type);
++TERM_PUBLIC void GDMP_move(unsigned int x, unsigned int y);
++TERM_PUBLIC void GDMP_vector(unsigned int x, unsigned int y);
++TERM_PUBLIC void GDMP_put_text(unsigned int x, unsigned int y, const char *str);
++TERM_PUBLIC void GDMP_reset(void);
++TERM_PUBLIC int GDMP_justify_text(enum JUSTIFY mode);
++TERM_PUBLIC int GDMP_text_angle(float ang);
++TERM_PUBLIC void GDMP_point(unsigned int x, unsigned int y, int pointstyle);
++TERM_PUBLIC int GDMP_set_font(const char *font);
++/* TERM_PUBLIC void GDMP_pointsize(double pointsize); */
++TERM_PUBLIC void GDMP_fillbox(int style, unsigned int x1, unsigned int y1, unsigned int width, unsigned int height);
++TERM_PUBLIC void GDMP_linewidth(double linewidth);
++TERM_PUBLIC int GDMP_make_palette(t_sm_palette *);
++TERM_PUBLIC void GDMP_previous_palette(void);
++TERM_PUBLIC void GDMP_set_color(t_colorspec *);
++TERM_PUBLIC void GDMP_filled_polygon(int, gpiPoint *);
++TERM_PUBLIC void GDMP_layer(t_termlayer syncpoint);
++
++TERM_PUBLIC void ENHgdmp_OPEN(char *, double, double, TBOOLEAN, TBOOLEAN, int);
++TERM_PUBLIC void ENHgdmp_FLUSH(void);
++TERM_PUBLIC void ENHgdmp_put_text(unsigned int, unsigned int, const char *);
++TERM_PUBLIC void ENHgdmp_writec(int);
++
++TERM_PUBLIC void GDMP_path(int p);
++TERM_PUBLIC void GDMP_hypertext(int, const char *);
++
++#ifdef WRITE_PNG_IMAGE
++TERM_PUBLIC void GDMP_image(unsigned m, unsigned n, coordval *image, gpiPoint *corner, t_imagecolor color_mode);
++#endif
++
++#define GDMP_SCALE	100.	/* Coordinate accuracy is 1/GDMP_SCALE pixel */
++#define PREC		2	/* Decimal places needed for GDMP_SCALEd values */
++#define Y(y) ((float)((int)term->ymax - (int)y) / GDMP_SCALE)
++#define X(x) ((float)(x) / GDMP_SCALE)
++
++#define GDMP_XMAX	(600 * GDMP_SCALE)
++#define GDMP_YMAX	(480 * GDMP_SCALE)
++
++#endif /* TERM_PROTO */
++
++#ifndef TERM_PROTO_ONLY
++#ifdef TERM_BODY
++
++static t_sm_palette GDMP_palette;
++static unsigned char GDMP_red = 0;
++static unsigned char GDMP_green = 0;
++static unsigned char GDMP_blue = 0;
++static double GDMP_alpha = 0.0;
++static unsigned char GDMP_color_mode = TC_DEFAULT;
++static unsigned int GDMP_rgb = 0;
++static unsigned int GDMP_patterncolor[8];
++static char *GDMP_linecolor = NULL;
++static char *GDMP_name = NULL;
++static char *GDMP_scriptdir = NULL;
++static const TBOOLEAN GDMP_mouseable = FALSE;
++static const TBOOLEAN GDMP_standalone = FALSE;
++static TBOOLEAN GDMP_domterm = FALSE;
++static TBOOLEAN GDMP_emit_doctype = TRUE;
++static TBOOLEAN GDMP_animate = FALSE;
++
++static TBOOLEAN GDMP_groupFilledIsOpen = FALSE; /* open pm3d group flag*/
++static TBOOLEAN GDMP_inTextBox = FALSE;
++
++struct GDMP_PEN
++{
++    double width;
++    char color[8];
++};
++
++static unsigned int GDMP_xSize = GDMP_XMAX; /* plot horizontal size */
++static unsigned int GDMP_ySize = GDMP_YMAX; /* plot vertical size*/
++static TBOOLEAN GDMP_fixed_size = TRUE;  /* make SVG viewer size fixed */
++
++static unsigned int GDMP_xLast = UINT_MAX; /* current pen horizontal position*/
++static unsigned int GDMP_yLast = UINT_MAX;	/* current pen vertical position*/
++
++static int GDMP_LineType = LT_NODRAW;	/* current line type*/
++static double GDMP_LineWidth = 1.0; /* current line width*/
++static double GDMP_linewidth_factor = 1.0; /* Multiplier for linewidths */
++static double GDMP_dashlength = 1.0; /* Multiplier for dash patterns */
++static t_linecap GDMP_linecap = BUTT; /* linejoin and linecap */
++static float GDMP_TextAngle = 0;	/* current text orientation*/
++static enum JUSTIFY GDMP_TextJust = LEFT; /* current text justification*/
++
++/* default text font family: */
++static char *GDMP_fontNameDef = NULL;
++static char *GDMP_fontStyleDef = NULL; /* default font style */
++static char *GDMP_fontWeightDef = NULL; /* default font weight */
++static double GDMP_fontSizeDef = 12;	/* default text size*/
++/* current text font family: */
++static char *GDMP_fontNameCur = NULL;
++static char *GDMP_fontStyleCur = NULL; /* current font style */
++static char *GDMP_fontWeightCur = NULL; /* current font weight */
++static double GDMP_fontSizeCur = 12;	/* current text size*/
++static double GDMP_fontscale = 1.0;	/* multiplier for nominal font size */
++static TBOOLEAN GDMP_groupIsOpen = FALSE; /* open group flag*/
++static TBOOLEAN GDMP_pathIsOpen = FALSE; /* open path flag*/
++static unsigned int GDMP_path_count = 0;	/* size of current path*/
++static struct GDMP_PEN GDMP_pens[16];	/* pen descriptors*/
++
++static int GDMP_fillPattern = -1; /* active fill pattern (-1 == undefined) */
++static unsigned int GDMP_fillPatternIndex = 0;
++static int GDMP_background = -1;
++static int GDMP_plotno = 0;
++static TBOOLEAN GDMP_gridline = FALSE;
++static TBOOLEAN GDMP_hasgrid = FALSE;
++
++static double GDMP_fontAscent  = 0;	/* estimated current font ascent*/
++static double GDMP_fontDescent = 0;	/* estimated current font descent*/
++static double GDMP_fontLeading = 0;	/* estimated current font leading*/
++static double GDMP_fontAvWidth = 0;	/* estimated current font char average width*/
++
++static short GDMP_Pen_RealID(int);
++static void GDMP_PathOpen(void);
++static void GDMP_PathClose(void);
++static void GDMP_AddSpaceOrNewline(void);
++static void GDMP_GroupOpen(void);
++static void GDMP_GroupClose(void);
++static void GDMP_SetFont(const char *name, double size);
++static void GDMP_GroupFilledOpen(void);
++static void GDMP_GroupFilledClose(void);
++static void GDMP_StyleColor(const char*);
++static void GDMP_StyleFillColor(void);
++static void GDMP_local_reset(void);
++static void GDMP_DefineFillPattern(int fillpat);
++static void GDMP_MoveForced(unsigned int x, unsigned int y);
++static void GDMP_write_preamble(void);
++
++/* Stuff for enhanced text mode */
++static int ENHgdmp_string_state = 0;
++static double ENHgdmp_x_offset = 0;
++
++/* Support for dashed lines */
++#define GDMP_dashtypes 5
++static char *GDMP_defaultdashpattern[GDMP_dashtypes] = {
++    "", " 5,8", " 2,4", " 8,4,2,4", " 9,4,1,4,1,4"
++};
++static char *GDMP_axis_dashpattern = "2,4";
++static int GDMP_dasharray[GDMP_dashtypes][7] = {
++	{ 0,0,0,0,0,0,0},
++	{5,8, 0,0,0,0,0},
++	{2,4, 0,0,0,0,0},
++	{8,4,2,4, 0,0,0},
++	{9,4,1,4,1,4, 0}
++};
++static char *GDMP_dashpattern = NULL;
++static char  GDMP_custom_dash_pattern[64];
++
++/* Hypertext support */
++static double GDMP_hypertext_fontSize = 0;
++static char *GDMP_hypertext_fontName = NULL;
++static char *GDMP_hypertext_fontStyle = NULL;
++static char *GDMP_hypertext_fontWeight = NULL;
++
++/* Support for embedded hypertext */
++static char *GDMP_hypertext_text = NULL;
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_Pen_RealID
++------------------------------------------------------------------------------------------------------------------------------------*/
++static short
++GDMP_Pen_RealID (int inPenCode)
++{
++    if (inPenCode >= 13)
++	inPenCode %= 13;	/* normalize pen code*/
++    inPenCode += 3;
++    if (inPenCode < 0)
++	inPenCode = 0;		/* LT_BACKGROUND should use background color */
++
++    return (inPenCode);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_GroupOpen
++------------------------------------------------------------------------------------------------------------------------------------*/
++static void
++GDMP_GroupOpen ()
++{
++    GDMP_GroupFilledClose();
++    if (!GDMP_groupIsOpen) {
++
++	GDMP_groupIsOpen = TRUE;
++	GDMP_CALL_METHOD(set_group_is_open, GDMP_groupIsOpen);
++	GDMP_CALL_METHOD(set_pen, SVG_LineType << 8, 0, 0.0);
++    }
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_GroupClose
++------------------------------------------------------------------------------------------------------------------------------------*/
++static void
++GDMP_GroupClose ()
++{
++    GDMP_GroupFilledClose();
++    if (GDMP_groupIsOpen) {
++	  GDMP_groupIsOpen = FALSE;
++	  GDMP_CALL_METHOD(set_group_is_open, GDMP_groupIsOpen);
++	  GDMP_fillPattern = -1;
++	  GDMP_CALL_METHOD(set_fill_pattern, GDMP_fillPattern);
++      }
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_PathOpen
++------------------------------------------------------------------------------------------------------------------------------------*/
++static void
++GDMP_PathOpen ()
++{
++    if (!GDMP_pathIsOpen) {
++	GDMP_GroupFilledClose();
++
++	GDMP_pathIsOpen = TRUE;
++	GDMP_CALL_METHOD(set_path_is_open, GDMP_pathIsOpen);
++    }
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_PathClose
++------------------------------------------------------------------------------------------------------------------------------------*/
++static void
++GDMP_PathClose ()
++{
++    if (GDMP_pathIsOpen) {
++	GDMP_GroupFilledClose();
++	GDMP_path_count = 0;
++	GDMP_pathIsOpen = FALSE;
++	GDMP_CALL_METHOD(set_path_is_open, GDMP_pathIsOpen);
++    }
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_AddSpaceOrNewline
++------------------------------------------------------------------------------------------------------------------------------------*/
++static void
++GDMP_AddSpaceOrNewline ()
++{
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_SetFont
++------------------------------------------------------------------------------------------------------------------------------------*/
++static void
++GDMP_SetFont (const char *name, double size)
++{
++    if (name != GDMP_fontNameCur) {
++	free(GDMP_fontNameCur);
++	GDMP_fontNameCur = gp_strdup(name);
++    }
++    GDMP_fontSizeCur = size;
++	GDMP_CALL_METHOD(set_font, name, size);
++
++    GDMP_fontAscent  = (GDMP_fontSizeCur * 0.90 * GDMP_SCALE);
++    GDMP_fontDescent = (GDMP_fontSizeCur * 0.25 * GDMP_SCALE);
++    GDMP_fontLeading = (GDMP_fontSizeCur * 0.35 * GDMP_SCALE);
++    GDMP_fontAvWidth = (GDMP_fontSizeCur * 0.70 * GDMP_SCALE);
++
++    term->h_char = GDMP_fontAvWidth;
++    term->v_char = (GDMP_fontAscent + GDMP_fontDescent + GDMP_fontLeading);
++
++	GDMP_CALL_METHOD(set_v_char, term->h_char);
++	GDMP_CALL_METHOD(set_h_char, term->v_char);
++}
++
++static void
++GDMP_GroupFilledOpen()
++{
++    if (!GDMP_groupFilledIsOpen) {
++	GDMP_PathClose();
++	GDMP_groupFilledIsOpen = TRUE;
++	GDMP_CALL_METHOD(set_group_filled_is_open, GDMP_groupFilledIsOpen);
++    }
++}
++
++static void
++GDMP_GroupFilledClose()
++{
++    if (GDMP_groupFilledIsOpen) {
++	GDMP_groupFilledIsOpen = FALSE;
++	GDMP_CALL_METHOD(set_group_filled_is_open, GDMP_groupFilledIsOpen);
++    }
++}
++
++static void
++GDMP_StyleColor(const char* paint)
++{
++}
++
++static void
++GDMP_StyleFillColor()
++{
++    GDMP_StyleColor("fill");
++}
++
++static void
++GDMP_DefineFillPattern(int fillpat)
++{
++    char *path;
++    char *style="stroke";
++    unsigned int newcolor;
++
++    fillpat %= 8;
++
++    if (GDMP_color_mode == TC_RGB || GDMP_color_mode == TC_LT)
++	newcolor = GDMP_rgb;
++    else
++	newcolor = GDMP_patterncolor[fillpat];
++
++    if (fillpat != GDMP_fillPattern || newcolor != GDMP_patterncolor[fillpat]) {
++	GDMP_fillPattern = fillpat;
++	GDMP_CALL_METHOD(set_fill_pattern, GDMP_fillPattern);
++	GDMP_patterncolor[fillpat] = newcolor;
++	GDMP_PathClose();
++	GDMP_fillPatternIndex++;
++    }
++}
++
++static void
++GDMP_MoveForced(unsigned int x, unsigned int y)
++{
++    if (GDMP_path_count > 512)
++	GDMP_PathClose();
++
++    GDMP_PathOpen ();
++
++    GDMP_path_count++;
++
++    GDMP_AddSpaceOrNewline ();
++
++    GDMP_xLast = x;
++    GDMP_yLast = y;
++
++	GDMP_CALL_METHOD(move, GDMP_xLast, GDMP_yLast);
++	GDMP_CALL_METHOD(set_xlast, GDMP_xLast);
++	GDMP_CALL_METHOD(set_ylast, GDMP_yLast);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_options
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_options ()
++{
++    /* Annoying hack to handle the case of 'set termoption' after */
++    /* we have already initialized the terminal settings.         */
++    if (!almost_equals(c_token-1, "termopt$ion"))
++	GDMP_local_reset();
++
++    if (strcmp(term->name, "domterm") == 0) {
++        GDMP_emit_doctype = FALSE;
++        GDMP_domterm = TRUE;
++    } else {
++        GDMP_emit_doctype = TRUE;
++        GDMP_domterm = FALSE;
++    }
++
++    /* Minimal initialization in case we error out of options parsing */
++    GDMP_set_font("");
++
++    while (!END_OF_COMMAND) {
++	if (almost_equals(c_token, "s$ize")) {
++	    double value;
++
++	    c_token++;
++
++	    if (END_OF_COMMAND)
++		int_error(c_token,"expecting x size");
++	    value = real_expression();
++	    if (value < 2)
++		int_error(c_token,"x size out of range");
++	    GDMP_xSize = value * GDMP_SCALE;
++
++	    if (equals(c_token,","))
++		c_token++;
++	    if (END_OF_COMMAND)
++		int_error(c_token,"expecting y size");
++	    value = real_expression();
++	    if (value < 2)
++		int_error(c_token,"y size out of range");
++	    GDMP_ySize = value * GDMP_SCALE;
++	    continue;
++	}
++
++	if (equals(c_token, "name")) {
++	    c_token++;
++	    GDMP_name = try_to_get_string();
++	    if (!GDMP_name)
++		    int_error(c_token,"expecting a plot name");
++	    if (GDMP_name[strspn(GDMP_name,
++		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_1234567890")])
++		    int_error(c_token-1,"name must contain only alphanumerics or _");
++	    continue;
++	}
++
++	if (almost_equals(c_token, "enh$anced")) {
++	    c_token++;
++	    term->put_text = ENHgdmp_put_text;
++	    term->flags |= TERM_ENHANCED_TEXT;
++	    continue;
++	}
++
++	if (almost_equals(c_token, "noenh$anced")) {
++	    c_token++;
++	    term->put_text = GDMP_put_text;
++	    term->flags &= ~TERM_ENHANCED_TEXT;
++	    continue;
++	}
++
++	if (almost_equals(c_token, "fn$ame") || almost_equals(c_token, "font"))  {
++	    char *s, *comma;
++	    c_token++;
++
++	    if (!(s = try_to_get_string()))
++		int_error(c_token,"expecting font name");
++	    comma = strrchr(s,',');
++	    if (comma && (1 == sscanf(comma + 1, "%lf", &GDMP_fontSizeDef)))
++		*comma = '\0';
++
++	    if (*s) {
++		char *bold, *italic;
++
++		if (!((bold = strstr(s," bold"))))
++		    bold = strstr(s," Bold");
++
++		if (!((italic = strstr(s," italic"))))
++		    italic = strstr(s," Italic");
++
++		free(GDMP_fontNameDef);
++		GDMP_fontNameDef = s;
++		if (italic) {
++		    GDMP_fontStyleDef = "italic";
++		    GDMP_fontNameDef[strlen(s) - strlen(italic)] = NUL;
++		} else  {
++		    GDMP_fontStyleDef = "normal";
++		}
++		if (bold) {
++		    GDMP_fontWeightDef="bold";
++		    GDMP_fontNameDef[strlen(s) - strlen(bold)] = NUL;
++		} else {
++		    GDMP_fontWeightDef = "normal";
++		}
++	    } else
++		free(s);
++	    continue;
++	}
++
++	if (equals(c_token, "fontscale")) {
++	    c_token++;
++	    GDMP_fontscale = real_expression();
++	    if (GDMP_fontscale <= 0)
++		GDMP_fontscale = 1.0;
++	    continue;
++	}
++
++	if (almost_equals(c_token, "linew$idth") || equals(c_token, "lw")) {
++	    c_token++;
++	    GDMP_linewidth_factor = real_expression();
++	    if (GDMP_linewidth_factor <= 0.0)
++		GDMP_linewidth_factor = 1.0;
++	    continue;
++	}
++
++	if (almost_equals(c_token, "dashl$ength") || equals(c_token, "dl")) {
++	    c_token++;
++	    GDMP_dashlength = real_expression();
++	    if (GDMP_dashlength < 0.5)
++		GDMP_dashlength = 1.0;
++	    continue;
++	}
++
++	if (almost_equals (c_token, "round$ed")) {
++	    c_token++;
++	    GDMP_linecap = ROUNDED;
++	    continue;
++	}
++
++	if (equals (c_token, "square")) {
++	    c_token++;
++	    GDMP_linecap = SQUARE;
++	    continue;
++	}
++
++	if (equals (c_token, "butt")) {
++	    c_token++;
++	    GDMP_linecap = BUTT;
++	    continue;
++	}
++
++	/* Not used in version 5 */
++	if (equals(c_token, "solid") || almost_equals(c_token, "dash$ed")) {
++	    c_token++;
++	    continue;
++	}
++
++	if (almost_equals(c_token, "backg$round")) {
++	    c_token++;
++	    GDMP_background = parse_color_name();
++	    continue;
++	}
++
++	if (GDMP_domterm && almost_equals(c_token, "anim$ate")) {
++	    c_token++;
++	    GDMP_animate = TRUE;
++	    continue;
++	}
++
++	int_error(c_token, "unrecognized terminal option");
++    }
++
++    /* I don't think any error checks on font name are possible; just set it */
++    GDMP_set_font("");
++
++    /* Save options back into options string in normalized format */
++    sprintf(term_options, "size %d,%d%s %s font '%s,%g' ",
++	    (int)(GDMP_xSize/GDMP_SCALE), (int)(GDMP_ySize/GDMP_SCALE),
++	GDMP_fixed_size ? " fixed": " dynamic",
++	term->put_text == ENHgdmp_put_text ? "enhanced" : "",
++	GDMP_fontNameCur, GDMP_fontSizeCur);
++
++    if (GDMP_name) {
++	sprintf(term_options + strlen(term_options),
++	    "name \"%s\" ", GDMP_name);
++    }
++
++    sprintf(term_options + strlen(term_options),
++	GDMP_linecap == ROUNDED ? "rounded " : GDMP_linecap == SQUARE ? "square " : "butt ");
++
++    sprintf(term_options + strlen(term_options),
++	    "dashlength %.1f ", GDMP_dashlength);
++
++    if (GDMP_linewidth_factor != 1.0) {
++	sprintf(term_options + strlen(term_options),
++	    "linewidth %3.1f ", GDMP_linewidth_factor);
++    }
++
++    if (GDMP_background >= 0) {
++	sprintf(term_options + strlen(term_options),
++	    "background \"#%06x\" ", GDMP_background);
++    }
++
++    if (GDMP_animate) {
++	sprintf(term_options + strlen(term_options),
++	    "animate ");
++    }
++
++	GDMP_CALL_METHOD(set_color_mode, GDMP_color_mode);
++	GDMP_CALL_METHOD(set_linetype, GDMP_LineType);
++	GDMP_CALL_METHOD(set_dashpattern, GDMP_dashpattern);
++	GDMP_CALL_METHOD(set_gridline, GDMP_gridline);
++	GDMP_CALL_METHOD(set_hasgrid, GDMP_hasgrid);
++	GDMP_CALL_METHOD(set_plotno, GDMP_plotno);
++	GDMP_CALL_METHOD(set_fill_pattern, GDMP_fillPattern);
++	GDMP_CALL_METHOD(set_fill_pattern_index, GDMP_fillPatternIndex);
++	GDMP_CALL_METHOD(set_group_filled_is_open, GDMP_groupFilledIsOpen);
++	GDMP_CALL_METHOD(set_in_textbox, GDMP_inTextBox);
++	GDMP_CALL_METHOD(set_xsize, GDMP_xSize);
++	GDMP_CALL_METHOD(set_ysize, GDMP_ySize);
++	GDMP_CALL_METHOD(set_xlast, GDMP_xLast);
++	GDMP_CALL_METHOD(set_ylast, GDMP_yLast);
++	GDMP_CALL_METHOD(set_linecap, GDMP_linecap);
++	GDMP_CALL_METHOD(set_group_is_open, GDMP_groupIsOpen);
++	GDMP_CALL_METHOD(set_path_is_open, GDMP_pathIsOpen);
++	GDMP_CALL_METHOD(set_fontscale, GDMP_fontscale);
++	GDMP_CALL_METHOD(set_dashlength, GDMP_dashlength);
++	GDMP_CALL_METHOD(set_name, GDMP_name);
++	GDMP_CALL_METHOD(set_linewidth_factor, GDMP_linewidth_factor);
++	GDMP_CALL_METHOD(set_background, GDMP_background);
++
++	GDMP_CALL_METHOD0(options);
++}
++
++static void
++GDMP_local_reset()
++{
++    GDMP_xSize      = GDMP_XMAX;
++    GDMP_ySize      = GDMP_YMAX;
++    GDMP_fixed_size = TRUE;
++    free(GDMP_fontNameDef);
++    GDMP_fontNameDef = gp_strdup("Arial");
++    GDMP_fontSizeDef  = 12;
++    free(GDMP_name);
++    GDMP_name = NULL;
++    free(GDMP_scriptdir);
++    GDMP_scriptdir = NULL;
++    GDMP_gridline = FALSE;
++    GDMP_hasgrid = FALSE;
++    GDMP_animate = FALSE;
++    /* Default to enhanced text */
++    term->put_text = ENHgdmp_put_text;
++    term->flags |= TERM_ENHANCED_TEXT;
++
++	GDMP_CALL_METHOD(set_color_mode, GDMP_color_mode);
++	GDMP_CALL_METHOD(set_linetype, GDMP_LineType);
++	GDMP_CALL_METHOD(set_dashpattern, GDMP_dashpattern);
++	GDMP_CALL_METHOD(set_gridline, GDMP_gridline);
++	GDMP_CALL_METHOD(set_hasgrid, GDMP_hasgrid);
++	GDMP_CALL_METHOD(set_plotno, GDMP_plotno);
++	GDMP_CALL_METHOD(set_fill_pattern, GDMP_fillPattern);
++	GDMP_CALL_METHOD(set_fill_pattern_index, GDMP_fillPatternIndex);
++	GDMP_CALL_METHOD(set_group_filled_is_open, GDMP_groupFilledIsOpen);
++	GDMP_CALL_METHOD(set_in_textbox, GDMP_inTextBox);
++	GDMP_CALL_METHOD(set_xsize, GDMP_xSize);
++	GDMP_CALL_METHOD(set_ysize, GDMP_ySize);
++	GDMP_CALL_METHOD(set_xlast, GDMP_xLast);
++	GDMP_CALL_METHOD(set_ylast, GDMP_yLast);
++	GDMP_CALL_METHOD(set_linecap, GDMP_linecap);
++	GDMP_CALL_METHOD(set_group_is_open, GDMP_groupIsOpen);
++	GDMP_CALL_METHOD(set_path_is_open, GDMP_pathIsOpen);
++	GDMP_CALL_METHOD(set_fontscale, GDMP_fontscale);
++	GDMP_CALL_METHOD(set_dashlength, GDMP_dashlength);
++	GDMP_CALL_METHOD(set_name, GDMP_name);
++	GDMP_CALL_METHOD(set_linewidth_factor, GDMP_linewidth_factor);
++	GDMP_CALL_METHOD(set_background, GDMP_background);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_init
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_init ()
++{
++    /* setup pens*/
++    GDMP_pens[0].width = GDMP_LineWidth;
++    strcpy (GDMP_pens[0].color, "white"); /* should really be background */
++	GDMP_CALL_METHOD(set_pen, 0, 0xFFFFFFFFu, GDMP_LineWidth);
++
++    GDMP_pens[1].width = GDMP_LineWidth;
++    strcpy(GDMP_pens[1].color, "black");
++	GDMP_CALL_METHOD(set_pen, 1, 0xFF, GDMP_LineWidth);
++
++    GDMP_pens[2].width = GDMP_LineWidth;
++    strcpy(GDMP_pens[2].color, "gray");
++	// TODO: Fix gray color value
++	GDMP_CALL_METHOD(set_pen, 2, 0x999999FF, GDMP_LineWidth);
++
++    GDMP_pens[3].width = GDMP_LineWidth;
++    strcpy(GDMP_pens[3].color, "red");
++	GDMP_CALL_METHOD(set_pen, 3, 0xFF0000FF, GDMP_LineWidth);
++
++    GDMP_pens[4].width = GDMP_LineWidth;
++    strcpy(GDMP_pens[4].color, "green");
++	GDMP_CALL_METHOD(set_pen, 4, 0x00FF00FF, GDMP_LineWidth);
++
++    GDMP_pens[5].width = GDMP_LineWidth;
++    strcpy(GDMP_pens[5].color, "blue");
++	GDMP_CALL_METHOD(set_pen, 5, 0x0000FFFF, GDMP_LineWidth);
++
++    GDMP_pens[6].width = GDMP_LineWidth;
++    strcpy(GDMP_pens[6].color, "cyan");
++	GDMP_CALL_METHOD(set_pen, 6, 0xFF00FFFF, GDMP_LineWidth);
++
++#define GDMP_RGB_TO_HEX(r, g, b) (r << 24 | g << 16 | b << 8 | 255u)
++
++    GDMP_pens[7].width = GDMP_LineWidth;
++    sprintf(GDMP_pens[7].color, "#%2.2X%2.2X%2.2X", 21, 117, 69); /* pine green*/
++	GDMP_CALL_METHOD(set_pen, 7, GDMP_RGB_TO_HEX(21, 117, 69), GDMP_LineWidth);
++
++    GDMP_pens[8].width = GDMP_LineWidth;
++    sprintf (GDMP_pens[8].color, "#%2.2X%2.2X%2.2X", 0, 0, 148);	/* navy*/
++	GDMP_CALL_METHOD(set_pen, 8, GDMP_RGB_TO_HEX(0, 0, 148), GDMP_LineWidth);
++
++    GDMP_pens[9].width = GDMP_LineWidth;
++    sprintf (GDMP_pens[9].color, "#%2.2X%2.2X%2.2X", 255, 153, 0); /* orange*/
++	GDMP_CALL_METHOD(set_pen, 9, GDMP_RGB_TO_HEX(255, 153, 0), GDMP_LineWidth);
++
++    GDMP_pens[10].width = GDMP_LineWidth;
++    sprintf (GDMP_pens[10].color, "#%2.2X%2.2X%2.2X", 0, 153, 161); /* green blue*/
++	GDMP_CALL_METHOD(set_pen, 10, GDMP_RGB_TO_HEX(0, 153, 161), GDMP_LineWidth);
++
++    GDMP_pens[11].width = GDMP_LineWidth;
++    sprintf (GDMP_pens[11].color, "#%2.2X%2.2X%2.2X", 214, 214, 69); /* olive*/
++	GDMP_CALL_METHOD(set_pen, 11, GDMP_RGB_TO_HEX(214, 214, 69), GDMP_LineWidth);
++
++    GDMP_pens[12].width = GDMP_LineWidth;
++    sprintf (GDMP_pens[12].color, "#%2.2X%2.2X%2.2X", 163, 145, 255); /* cornflower*/
++	GDMP_CALL_METHOD(set_pen, 12, GDMP_RGB_TO_HEX(163, 145, 255), GDMP_LineWidth);
++
++    GDMP_pens[13].width = GDMP_LineWidth;
++    sprintf (GDMP_pens[13].color, "#%2.2X%2.2X%2.2X", 255, 204, 0); /* gold*/
++	GDMP_CALL_METHOD(set_pen, 13, GDMP_RGB_TO_HEX(255, 204, 0), GDMP_LineWidth);
++
++    GDMP_pens[14].width = GDMP_LineWidth;
++    sprintf (GDMP_pens[14].color, "#%2.2X%2.2X%2.2X", 214, 0, 120); /* mulberry*/
++	GDMP_CALL_METHOD(set_pen, 14, GDMP_RGB_TO_HEX(214, 0, 120), GDMP_LineWidth);
++
++    GDMP_pens[15].width = GDMP_LineWidth;
++    sprintf (GDMP_pens[15].color, "#%2.2X%2.2X%2.2X", 171, 214, 0); /* green yellow*/
++	GDMP_CALL_METHOD(set_pen, 15, GDMP_RGB_TO_HEX(171, 214, 0), GDMP_LineWidth);
++
++#undef GDMP_RGB_TO_HEX
++
++    if (GDMP_background >= 0) {
++	sprintf(GDMP_pens[0].color, "#%2.2X%2.2X%2.2X",
++		(GDMP_background >> 16)&0xff,
++		(GDMP_background >> 8)&0xff,
++		(GDMP_background)&0xff);
++	GDMP_CALL_METHOD(set_pen, 0, (GDMP_background << 8) | 255, GDMP_LineWidth);
++	}
++
++    GDMP_LineType = LT_NODRAW;
++	GDMP_CALL_METHOD(set_linetype, GDMP_LineType);
++
++    for (int i=0; i<8; i++)
++	GDMP_patterncolor[i] = 0xff000000;
++
++/* set xmax, ymax*/
++
++    term->xmax = GDMP_xSize;
++    term->ymax = GDMP_ySize;
++	GDMP_CALL_METHOD(set_xmax, GDMP_xSize);
++	GDMP_CALL_METHOD(set_ymax, GDMP_ySize);
++
++/* set current font, including h_char and v_char */
++
++    GDMP_SetFont (GDMP_fontNameCur, GDMP_fontSizeCur);
++
++/* set h_tic, v_tic*/
++
++    term->h_tic = term->v_char / 2;
++    term->v_tic = term->v_char / 2;
++	GDMP_CALL_METHOD(set_h_tic, term->h_tic);
++	GDMP_CALL_METHOD(set_v_tic, term->v_tic);
++
++	GDMP_CALL_METHOD0(init);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_graphics
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_graphics ()
++{
++    /* We must force a new group with fill:none in order for multiple */
++    /* plots per page to work. Otherwise new plots are black-filled   */
++    GDMP_GroupOpen();
++
++    GDMP_fillPattern = -1;
++    GDMP_fillPatternIndex = 0;
++    GDMP_groupFilledIsOpen = FALSE;
++    GDMP_color_mode = TC_DEFAULT;
++    GDMP_pathIsOpen = FALSE;
++
++/* reset position*/
++
++    GDMP_xLast = GDMP_yLast = UINT_MAX;
++
++	GDMP_CALL_METHOD(set_fill_pattern, GDMP_fillPattern);
++	GDMP_CALL_METHOD(set_fill_pattern_index, GDMP_fillPatternIndex);
++	GDMP_CALL_METHOD(set_group_filled_is_open, GDMP_groupFilledIsOpen);
++	GDMP_CALL_METHOD(set_color_mode, GDMP_color_mode);
++	GDMP_CALL_METHOD(set_path_is_open, GDMP_pathIsOpen);
++	GDMP_CALL_METHOD(set_xlast, GDMP_xLast);
++	GDMP_CALL_METHOD(set_ylast, GDMP_yLast);
++
++	GDMP_CALL_METHOD0(graphics);
++}
++
++static void
++gdmp_mouse_param( char *gp_name, const char *js_name)
++{
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_text
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_text ()
++{
++    GDMP_PathClose ();
++    GDMP_GroupClose ();
++
++	GDMP_CALL_METHOD0(text);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_reset
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_reset ()
++{
++	GDMP_CALL_METHOD0(reset);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_linetype
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_linetype (int linetype)
++{
++    GDMP_color_mode = TC_DEFAULT;
++    if (TRUE || linetype != GDMP_LineType) {
++	GDMP_PathClose ();
++	GDMP_GroupClose ();
++	GDMP_LineType = linetype;
++	GDMP_GroupOpen ();
++    }
++    if (linetype == LT_AXIS)
++	GDMP_dashpattern = GDMP_axis_dashpattern;
++    if (linetype == LT_SOLID)
++	GDMP_dashpattern = NULL;
++
++	GDMP_CALL_METHOD(set_color_mode, GDMP_color_mode);
++	GDMP_CALL_METHOD(set_linetype, GDMP_LineType);
++	GDMP_CALL_METHOD(set_dashpattern, GDMP_dashpattern);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_dashtype
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_dashtype (int type, t_dashtype *custom_dash_type)
++{
++    int d, j;
++    double empirical_scale = 0.50;
++    /* The dash pattern should depend on the `linewidth` and the terminal options `dashlength` and `linewidth`. */
++    double dash_scale = GDMP_pens[GDMP_Pen_RealID (GDMP_LineType)].width * GDMP_linewidth_factor * GDMP_dashlength * empirical_scale;
++
++    GDMP_dashpattern = NULL;	/* Assume solid line */
++	GDMP_CALL_METHOD(set_dashpattern, GDMP_dashpattern);
++
++    switch(type) {
++
++	case DASHTYPE_SOLID:
++	    break;
++
++	case DASHTYPE_AXIS:
++	    /* Currently handled elsewhere via LT_AXIS */
++	    break;
++
++	case DASHTYPE_CUSTOM:
++	    if (custom_dash_type) {
++		GDMP_dashpattern = GDMP_custom_dash_pattern;
++		*GDMP_dashpattern = '\0';
++		for (j = 0; j < 8 && custom_dash_type->pattern[j] > 0; j++) {
++		    char *p = &GDMP_dashpattern[strlen(GDMP_dashpattern)];
++		    snprintf(p, 8, "%.1f", custom_dash_type->pattern[j] * dash_scale);
++		    if (j < 7 && custom_dash_type->pattern[j+1])
++			strcat(p,",");
++		}
++	    }
++	    break;
++
++	default:
++	    /* Fall back to whatever version 4 would have provided */
++	    d = type % GDMP_dashtypes;
++	    if (d <= 0)
++		break;
++
++	    /* Default dash length and sequence */
++	    if (dash_scale == 1.0)
++		GDMP_dashpattern = GDMP_defaultdashpattern[d];
++
++	    /* Dash patterns scaled up by dashlength and linewidth */
++	    else {
++		GDMP_dashpattern = GDMP_custom_dash_pattern;
++		*GDMP_dashpattern = '\0';
++		j = 0;
++		do {
++		    char *p = &GDMP_dashpattern[strlen(GDMP_dashpattern)];
++		    snprintf(p, 8, "%.1f", GDMP_dasharray[d][j] * dash_scale);
++		    if (GDMP_dasharray[d][++j])
++			strcat(p,",");
++		} while (GDMP_dasharray[d][j] > 0);
++	    }
++	    break;
++    }
++
++	GDMP_CALL_METHOD(set_dashpattern, GDMP_dashpattern);
++}
++
++TERM_PUBLIC void
++GDMP_fillbox(int style, unsigned int x1, unsigned int y1, unsigned int width, unsigned int height)
++{
++	GDMP_CALL_METHOD(fillbox, style, x1, y1, width, height);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_linewidth - verificare
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_linewidth (double linewidth)
++{
++    if (linewidth != GDMP_LineWidth) {
++	short k;
++
++	GDMP_LineWidth = linewidth;
++	GDMP_CALL_METHOD(linewidth, GDMP_LineWidth);
++
++	for (k = 0; k < 16; k++)
++	    GDMP_pens[k].width = GDMP_LineWidth;
++
++	GDMP_PathClose ();
++	GDMP_GroupClose ();
++	GDMP_GroupOpen ();
++    }
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_move
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_move (unsigned int x, unsigned int y)
++{
++    if (x != GDMP_xLast || y != GDMP_yLast)  {
++	GDMP_MoveForced(x, y);
++    }
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_vector
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_vector (unsigned int x, unsigned int y)
++{
++    if (x != GDMP_xLast || y != GDMP_yLast) {
++
++	if (!GDMP_pathIsOpen) {
++	    /* The SVG 'path' MUST have a 'moveto' as first command. */
++	    GDMP_MoveForced(GDMP_xLast, GDMP_yLast);
++	}
++
++	GDMP_CALL_METHOD(vector, x, y);
++	GDMP_path_count++;
++
++	GDMP_AddSpaceOrNewline ();
++
++	GDMP_xLast = x;
++	GDMP_yLast = y;
++	GDMP_CALL_METHOD(set_xlast, GDMP_xLast);
++	GDMP_CALL_METHOD(set_ylast, GDMP_yLast);
++    }
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_point
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_point (unsigned int x, unsigned int y, int number)
++{
++    GDMP_PathClose ();
++
++    GDMP_xLast = x;
++    GDMP_yLast = y;
++	GDMP_CALL_METHOD(set_xlast, GDMP_xLast);
++	GDMP_CALL_METHOD(set_ylast, GDMP_yLast);
++	GDMP_CALL_METHOD(set_term_pointsize, term_pointsize * term->h_tic / (2 * GDMP_SCALE));
++	GDMP_CALL_METHOD(point, GDMP_xLast, GDMP_yLast, number);
++
++    if (GDMP_hypertext_text) {
++	free(GDMP_hypertext_text);
++	GDMP_hypertext_text = NULL;
++    } else {
++    }
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_justify_text
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC int
++GDMP_justify_text (enum JUSTIFY mode)
++{
++    GDMP_TextJust = mode;
++	GDMP_CALL_METHOD(justify_text, GDMP_TextJust);
++    return (TRUE);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_text_angle
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC int
++GDMP_text_angle (float ang)
++{
++    /* Can only do pure horizontal or vertical */
++    GDMP_TextAngle = ang;
++	GDMP_CALL_METHOD(text_angle, GDMP_TextAngle);
++    return (TRUE);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_put_text
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_put_text (unsigned int x, unsigned int y, const char *str)
++{
++    double vertical_offset;
++    int h = x, v = y;
++	const char *str_start = str;
++
++    GDMP_PathClose ();
++
++/* horizontal justification*/
++
++	if (GDMP_color_mode != TC_RGB && GDMP_color_mode != TC_LT)
++		GDMP_CALL_METHOD(set_pen, GDMP_Pen_RealID(GDMP_LineType) << 8, 0, 0.0);
++
++/* vertical justification*/
++    vertical_offset = (GDMP_fontAscent - GDMP_fontDescent) / 2.;
++    h += vertical_offset * sin(GDMP_TextAngle * DEG2RAD);
++    v -= vertical_offset * cos(GDMP_TextAngle * DEG2RAD);
++
++	GDMP_CALL_METHOD(put_text, h, v, str_start);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_set_font
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC int
++GDMP_set_font (const char *font)
++{
++
++    if (!font || !(*font)) {
++	free(GDMP_fontNameCur);
++	GDMP_fontNameCur = gp_strdup(GDMP_fontNameDef);
++	GDMP_fontSizeCur = GDMP_fontSizeDef;
++	GDMP_fontStyleCur = GDMP_fontStyleDef;
++	GDMP_fontWeightCur = GDMP_fontWeightDef;
++    } else {
++	char *bold, *italic;
++	int sep;
++
++#ifdef GDMP_INCLUDE_NOT_IMPLEMENTED
++	if (!((bold = strstr(font," bold"))))
++	    bold = strstr(font," Bold");
++
++	if (!((italic = strstr(font," italic"))))
++	    italic = strstr(font," Italic");
++#endif
++
++	sep = strcspn(font,",");
++	if (sep > 0) {
++	    free(GDMP_fontNameCur);
++	    GDMP_fontNameCur = gp_strdup(font);
++
++#ifdef GDMP_INCLUDE_NOT_IMPLEMENTED
++	    if (italic) {
++		GDMP_fontStyleCur="italic";
++		GDMP_fontNameCur[strlen(font) - strlen(italic)] = NUL;
++	    } else {
++		GDMP_fontStyleCur="normal";
++	    }
++
++	    if (bold) {
++        	GDMP_fontWeightCur="bold";
++		GDMP_fontNameCur[strlen(font) - strlen(bold)] = NUL;
++            } else {
++		GDMP_fontWeightCur="normal";
++	    }
++#endif
++
++	    GDMP_fontNameCur[sep] = NUL;
++	}
++	}
++
++    /* Set other font properties */
++    GDMP_SetFont(GDMP_fontNameCur, GDMP_fontSizeCur);
++
++    return (TRUE);
++}
++
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_make_palette
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC int
++GDMP_make_palette(t_sm_palette *palette)
++{
++    GDMP_GroupFilledClose();
++    if (palette == NULL) {
++	/* svg can do continuous colors */
++	return 0;
++    }
++
++    /* save mapping formulae needed if SMPAL_COLOR_MODE_RGB */
++    GDMP_palette.colorMode = palette->colorMode;
++    GDMP_palette.formulaR = palette->formulaR;
++    GDMP_palette.formulaG = palette->formulaG;
++    GDMP_palette.formulaB = palette->formulaB;
++    GDMP_palette.positive = palette->positive;
++
++	t_sm_palette *p_ = &GDMP_palette;
++	int raw_palette[5] = {
++		(int) p_->colorMode, p_->formulaR, p_->formulaG, p_->formulaB, (int) p_->positive,
++	};
++	GDMP_CALL_METHOD(make_palette, raw_palette);
++
++    return 0;
++}
++
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_set_color
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_set_color(t_colorspec *colorspec)
++{
++    rgb255_color rgb255;
++    GDMP_alpha = 0.0;
++    GDMP_rgb = rgb_from_colorspec(colorspec);
++	GDMP_CALL_METHOD(set_rgb, GDMP_rgb);
++	GDMP_CALL_METHOD(set_alpha, 1.0 - GDMP_alpha);
++
++    if (colorspec->type == TC_LT) {
++        if (GDMP_linecolor != GDMP_pens[GDMP_Pen_RealID (colorspec->lt)].color) {
++	    GDMP_linecolor = GDMP_pens[GDMP_Pen_RealID (colorspec->lt)].color;
++		GDMP_CALL_METHOD(set_linecolor, GDMP_linecolor);
++	    GDMP_PathClose();
++	}
++	GDMP_color_mode = TC_LT;
++	GDMP_CALL_METHOD(set_color_mode, GDMP_color_mode);
++	return;
++    } else if (colorspec->type == TC_FRAC) {
++	rgb255maxcolors_from_gray( colorspec->value, &rgb255 );
++    } else if (colorspec->type == TC_RGB) {
++	rgb255.r = colorspec->lt >> 16 & 0xff;
++	rgb255.g = colorspec->lt >> 8 & 0xff;
++	rgb255.b = colorspec->lt & 0xff;
++	GDMP_alpha = (double)(colorspec->lt >> 24 & 0xff) / 255.;
++    } else {
++	return;
++    }
++
++    GDMP_color_mode = TC_RGB;
++	GDMP_CALL_METHOD(set_color_mode, GDMP_color_mode);
++
++    if (rgb255.r != GDMP_red || rgb255.g != GDMP_green || rgb255.b != GDMP_blue) {
++	/* pm3d color has changed. We must start a new path
++	 * with a different line color. This is necessary when
++	 * using "linetype palette". */
++	GDMP_PathClose();
++	GDMP_red = rgb255.r;
++	GDMP_green = rgb255.g;
++	GDMP_blue = rgb255.b;
++    }
++
++	unsigned int c_ = 255;
++	if (colorspec->type == TC_RGB)
++		c_ = (((int) ((1.0 - GDMP_alpha) * 255.0)) & 255);
++
++	c_ |= (GDMP_blue & 255) << 8;
++	c_ |= (GDMP_green & 255) << 16;
++	c_ |= (GDMP_red & 255) << 24;
++
++	GDMP_CALL_METHOD(set_alpha, 1.0 - GDMP_alpha);
++	GDMP_CALL_METHOD(set_color, c_);
++
++    return;
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_previous_palette
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_previous_palette()
++{
++    GDMP_GroupFilledClose();
++	GDMP_CALL_METHOD0(previous_palette);
++}
++
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_filled_polygon
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_filled_polygon(int points, gpiPoint* corners)
++{
++    int i;
++    int fillpar = corners->style >> 4;
++    int style = corners->style & 0xf;
++
++    if (style == FS_PATTERN || style == FS_TRANSPARENT_PATTERN) {
++	/* make sure the pattern is defined (with the current stroke color)
++	 * must be defined AFTER the current group is opened with the color
++	 * attribute set, as the patterns use 'currentColor' */
++	GDMP_DefineFillPattern(fillpar);
++    }
++
++    GDMP_GroupFilledOpen();
++
++    switch (style) {
++	case FS_EMPTY: /* fill with background color */
++	    break;
++	case FS_SOLID: /* solid fill */
++	case FS_TRANSPARENT_SOLID:
++	    GDMP_StyleFillColor();
++	    break;
++	case FS_PATTERN: /* pattern fill */
++	case FS_TRANSPARENT_PATTERN:
++	    break;
++	default:
++	    GDMP_StyleFillColor();
++	    break;
++    }
++
++	int *p_ = (int *) gp_alloc(points * 2 * sizeof(int), NULL);
++
++	if (p_) {
++		for (i = 0; i < points; i++) {
++			int j = 2 * i;
++			p_[j+0] = corners[i].x;
++			p_[j+1] = corners[i].y;
++		}
++
++		GDMP_CALL_METHOD(filled_polygon, points, p_, corners->style);
++		free(p_);
++	}
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_layer
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_layer(t_termlayer syncpoint)
++{
++    char *name = NULL;
++    char panel[2] = {'\0','\0'};
++
++    /* We must ignore all syncpoints that we don't recognize */
++    switch (syncpoint) {
++
++    	default:
++		break;
++
++	case TERM_LAYER_BEFORE_PLOT:
++		GDMP_PathClose();
++		GDMP_GroupClose();
++		++GDMP_plotno;
++		name = (GDMP_name) ? GDMP_name : "gnuplot";
++		if (multiplot && multiplot_current_panel() < 26)
++		    panel[0] = 'a' + multiplot_current_panel();
++
++		free(GDMP_hypertext_text);
++		GDMP_hypertext_text = NULL;
++		GDMP_LineType = LT_UNDEFINED; /* Force a new group on next stroke */
++		break;
++
++	case TERM_LAYER_AFTER_PLOT:
++		GDMP_PathClose();
++		GDMP_GroupClose();
++		GDMP_LineType = LT_UNDEFINED; /* Force a new group on next stroke */
++		break;
++
++	case TERM_LAYER_BEGIN_GRID:
++		GDMP_gridline = TRUE;
++		GDMP_hasgrid = TRUE;
++		break;
++
++	case TERM_LAYER_END_GRID:
++		GDMP_gridline = FALSE;
++		break;
++
++	case TERM_LAYER_BEGIN_KEYSAMPLE:
++		if (GDMP_mouseable) {
++		    GDMP_PathClose();
++		    GDMP_GroupFilledClose();
++		    name = (GDMP_name) ? GDMP_name : "gnuplot";
++		    if (multiplot && multiplot_current_panel() < 26)
++			panel[0] = 'a' + multiplot_current_panel();
++		}
++		break;
++
++	case TERM_LAYER_END_KEYSAMPLE:
++		if (GDMP_mouseable) {
++		    GDMP_PathClose();
++		    GDMP_GroupFilledClose();
++		}
++		break;
++
++	case TERM_LAYER_RESET:
++	case TERM_LAYER_RESET_PLOTNO:
++		GDMP_plotno = 0;
++		break;
++    }
++
++	GDMP_CALL_METHOD(set_gridline, GDMP_gridline);
++	GDMP_CALL_METHOD(set_hasgrid, GDMP_hasgrid);
++	GDMP_CALL_METHOD(set_plotno, GDMP_plotno);
++	GDMP_CALL_METHOD(set_linetype, GDMP_LineType);
++	GDMP_CALL_METHOD(layer, syncpoint);
++}
++
++/*------------------------------------------------------------------------------------------------------------------------------------
++	GDMP_image
++------------------------------------------------------------------------------------------------------------------------------------*/
++TERM_PUBLIC void
++GDMP_image (unsigned m, unsigned n, coordval *image, gpiPoint *corner, t_imagecolor color_mode)
++{
++    GDMP_PathClose();
++
++	int p_[4] = { corner[0].x, corner[0].y, corner[1].x, corner[1].y };
++
++	GDMP_CALL_METHOD(image, m, n, image, p_, color_mode);
++}
++
++
++/* Enhanced text mode support starts here */
++
++static double ENHgdmp_base = 0.0;
++static TBOOLEAN ENHgdmp_opened_string = FALSE;
++static int ENHgdmp_charcount = 0;
++
++TERM_PUBLIC void
++ENHgdmp_OPEN(
++    char *fontname,
++    double fontsize, double base,
++    TBOOLEAN widthflag, TBOOLEAN showflag,
++    int overprint)
++{
++    /* overprint = 1 means print the base text (leave position in center)
++     * overprint = 2 means print the overlying text
++     * overprint = 3 means save current position
++     * overprint = 4 means restore saved position
++     * EAM FIXME - Unfortunately I can find no way in the svg spec to do this.
++     * The best I can come up with is to count characters from here and then
++     * try to back up over them.
++     */
++    switch (overprint) {
++    case 2:
++	/* FIXME: If there are multiple overprint characters,
++         *        they all get piled on top of one another.
++	 */
++	ENHgdmp_FLUSH();
++	ENHgdmp_base = base;
++	ENHgdmp_x_offset = 0.0;
++	enhanced_cur_text = enhanced_text;
++	ENHgdmp_charcount = 0;
++	ENHgdmp_opened_string = TRUE;
++	break;
++    case 3:
++	ENHgdmp_charcount = 0;
++	return;
++    case 4:
++	/* Defer setting the offsets until the text arrives */
++	ENHgdmp_x_offset = -0.5 * ENHgdmp_charcount;
++	ENHgdmp_base -= base;
++	ENHgdmp_charcount = 0;
++	return;
++    default:
++	break;
++    }
++
++    if (!ENHgdmp_opened_string) {
++	ENHgdmp_opened_string = TRUE;
++	enhanced_cur_text = enhanced_text;
++
++	/* Start a new textspan fragment */
++	if (fontname) {
++	    char *family = strdup(fontname);
++	    char *sep = strchr(family, ':');
++	    if (sep)
++		*sep = '\0';
++	    if (strcmp(GDMP_fontNameCur, family)) {
++		free(GDMP_fontNameCur);
++		GDMP_fontNameCur = family;
++	    } else {
++		free(family);
++	    }
++	}
++	if (GDMP_fontSizeCur != fontsize) {
++	    GDMP_fontSizeCur = fontsize;
++	}
++	if (ENHgdmp_x_offset != 0) {
++	    ENHgdmp_x_offset = 0.0;
++	}
++	if (ENHgdmp_base != base) {
++	    ENHgdmp_base = base;
++	}
++    }
++
++	GDMP_CALL_METHOD(set_font, GDMP_fontNameCur, GDMP_fontSizeCur);
++}
++
++TERM_PUBLIC void
++ENHgdmp_FLUSH()
++{
++    char *s = enhanced_text;
++    int i;
++
++    if (!ENHgdmp_opened_string)
++	return;
++
++    ENHgdmp_opened_string = FALSE;
++    *enhanced_cur_text = '\0';
++    enhanced_cur_text = enhanced_text;
++
++    /* DEBUG - expand unicode escape sequences \U+ABCD into &#xABCD;
++     * Triggers in two cases that I know of
++     * 1) encoding is not UTF-8  (probably should not happen for svg)
++     * 2) one too many backslashes in a single-quoted string
++     * We can't just substitute &#x for \U+ in place because the
++     * xml convention requires a trailing semicolon also.
++     * FIXME: this incorrectly handles the case where a legal hex character
++     * immediately follows a 4-char hex unicode entry point
++     * (e.g. the ab ligature in the unicode.dem).
++     */
++    while ((s = strstr(enhanced_cur_text, "\\U+")) != NULL) {
++	*s = '\0';
++	s += 3;					/* start of hex codepoint */
++	for (i=0; i<5; i++, s++) {		/* copy up to 5 hex characters */
++	    if (isxdigit((unsigned char)*s))
++		fputc(*s, gpoutfile);
++	    else
++		break;
++	}
++	enhanced_cur_text = s;
++    }
++}
++
++TERM_PUBLIC void
++ENHgdmp_put_text(unsigned int x, unsigned int y, const char *str)
++{
++    /* We need local copies of the starting font properties */
++    double fontsize = GDMP_fontSizeCur;
++    static char *fontname = NULL;
++
++    free(fontname);
++    fontname = gp_strdup(GDMP_fontNameCur);
++
++    /* We need the full set of tags for text, just as normal. But in */
++    /* the case of enhanced text ENHgdmp_string_state == 1 tells the  */
++    /* GDMP_put_text() to return without actually putting the text.   */
++    if (ignore_enhanced_text) {
++	ENHgdmp_string_state = 0;
++	GDMP_put_text(x, y, str);
++	return;
++    } else {
++	ENHgdmp_string_state = 1;
++	GDMP_put_text(x, y, str);
++	ENHgdmp_string_state = 0;
++    }
++
++    /* Set up global variables needed by enhanced_recursion() */
++    ENHgdmp_charcount = 0;
++    enhanced_fontscale = 1.0;
++    strncpy(enhanced_escape_format,"%c",sizeof(enhanced_escape_format));
++
++    while (*(str = enhanced_recursion((char *)str, TRUE,
++			fontname, fontsize, 0.0, TRUE, TRUE, 0))) {
++	(term->enhanced_flush)();
++	enh_err_check(str);
++	if (!*++str)
++	    break; /* end of string */
++    }
++
++    /* Make sure we leave with the same font properties as on entry */
++    free(GDMP_fontNameCur);
++    GDMP_fontNameCur = fontname;
++    fontname = NULL;
++    if (GDMP_fontSizeCur != fontsize || ENHgdmp_base != 0) {
++	GDMP_fontSizeCur = fontsize;
++	ENHgdmp_base = 0;
++    }
++
++	GDMP_CALL_METHOD(set_font, GDMP_fontNameCur, GDMP_fontSizeCur);
++	GDMP_CALL_METHOD(set_fontscale, GDMP_fontscale);
++
++    return;
++}
++
++TERM_PUBLIC void
++ENHgdmp_writec(int c)
++{
++    /* Kludge for phantom box accounting */
++    ENHgdmp_charcount++;
++
++    /* Escape SVG reserved characters. Are there any besides '<' and '&' ? */
++    switch (c) {
++    case '<':
++		*enhanced_cur_text++ = '&';
++		*enhanced_cur_text++ = 'l';
++		*enhanced_cur_text++ = 't';
++		*enhanced_cur_text++ = ';';
++		break;
++    case '&':
++		*enhanced_cur_text++ = '&';
++		*enhanced_cur_text++ = 'a';
++		*enhanced_cur_text++ = 'm';
++		*enhanced_cur_text++ = 'p';
++		*enhanced_cur_text++ = ';';
++		break;
++    case '\n':
++		*enhanced_cur_text++ = '\\';
++		*enhanced_cur_text++ = 'n';
++		break;
++    case '\376':
++		/* This is an illegal UTF-8 byte; we use it to escape the reserved '&' */
++		if (encoding == S_ENC_DEFAULT) {
++		    *enhanced_cur_text++ = '&';
++		    break;
++		} /* else fall through */
++    default:
++		*enhanced_cur_text++ = c;
++		break;
++    }
++
++    /* Never overflow the output buffer */
++    if ((enhanced_cur_text - enhanced_text) >= sizeof(enhanced_text)-1)
++	ENHgdmp_FLUSH();
++}
++
++TERM_PUBLIC void
++GDMP_path(int p)
++{
++    switch (p) {
++	case 1: /* Close path */
++		GDMP_PathClose();
++		break;
++	case 0:
++		break;
++    }
++
++	GDMP_CALL_METHOD(path, p);
++}
++
++TERM_PUBLIC void
++GDMP_hypertext( int type, const char *text )
++{
++    switch(type) {
++
++    case TERM_HYPERTEXT_TOOLTIP:
++    case TERM_HYPERTEXT_TITLE:
++	free(GDMP_hypertext_text);
++	if (text) {
++	    char *buffer = gp_alloc(2+5*strlen(text),"escape");
++	    enhanced_cur_text = buffer;
++	    do { ENHgdmp_writec(*text); }
++		while (*text++);
++	    GDMP_hypertext_text = gp_strdup(buffer);
++	    enhanced_cur_text = NULL;
++	    free(buffer);
++	} else {
++	    GDMP_hypertext_text = NULL;
++	}
++	break;
++
++    case TERM_HYPERTEXT_FONT:
++	{
++	int sep;
++
++	free(GDMP_hypertext_fontName); GDMP_hypertext_fontName = NULL;
++	free(GDMP_hypertext_fontStyle); GDMP_hypertext_fontStyle = NULL;
++	free(GDMP_hypertext_fontWeight); GDMP_hypertext_fontWeight = NULL;
++	GDMP_hypertext_fontSize = 0;
++	if (!text || !(*text))
++	    break;
++
++	sep = strcspn(text, ",:");
++	if (sep > 0) {
++	    GDMP_hypertext_fontName = gp_strdup(text);
++	    GDMP_hypertext_fontName[sep] = '\0';
++	}
++	sep = strcspn(text, ",");
++	if (sep > 0)
++	    sscanf(text + sep + 1, "%lf", &GDMP_hypertext_fontSize);
++	if (strstr(text, "italic") || strstr(text, "Italic"))
++	    GDMP_hypertext_fontStyle = gp_strdup("italic");
++	if (strstr(text, "bold") || strstr(text, "Bold"))
++	    GDMP_hypertext_fontWeight = gp_strdup("bold");
++	}
++	break;
++
++    default:
++	break;
++    }
++
++	GDMP_CALL_METHOD(hypertext, type, text);
++}
++
++TERM_PUBLIC void
++GDMP_boxed_text(unsigned int x, unsigned int y, int option)
++{
++    switch (option) {
++    case TEXTBOX_INIT:
++	/* Mark group containing next text item */
++	GDMP_inTextBox = TRUE;
++	break;
++    case TEXTBOX_OUTLINE:
++	/* Stroke the outline of the bounding box (FIXME: how???) */
++    case TEXTBOX_BACKGROUNDFILL:
++	/* Close the group, which will trigger application of the filter */
++	GDMP_inTextBox = FALSE;
++	break;
++    case TEXTBOX_MARGINS:
++	/* Adjust the size of the bounding box */
++	break;
++    }
++
++	GDMP_CALL_METHOD(boxed_text, x, y, option);
++}
++
++#undef Y
++#undef X
++#undef PREC
++
++#endif /* TERM_BODY */
++
++#ifdef TERM_TABLE
++TERM_TABLE_START (gdmp_driver)
++    "gdmp", "W3C Scalable Vector Graphics",
++    0 /* xmax */ , 0 /* ymax */ , 0 /* vchar */ , 0 /* hchar */ ,
++    0 /* vtic */ , 0 /* htic */ ,
++    GDMP_options, GDMP_init, GDMP_reset, GDMP_text, null_scale, GDMP_graphics,
++    GDMP_move, GDMP_vector, GDMP_linetype, GDMP_put_text, GDMP_text_angle,
++    GDMP_justify_text, GDMP_point, do_arrow, GDMP_set_font, do_pointsize,
++    TERM_CAN_DASH | TERM_ALPHA_CHANNEL|TERM_LINEWIDTH,
++    0 /* suspend */, 0 /* resume */ , GDMP_fillbox, GDMP_linewidth
++   , GDMP_make_palette,
++   GDMP_previous_palette,
++   GDMP_set_color,
++   GDMP_filled_polygon
++   , NULL	/* image */
++   , ENHgdmp_OPEN, ENHgdmp_FLUSH, ENHgdmp_writec
++   , GDMP_layer	/* layer */
++   , GDMP_path 	/* path */
++   , GDMP_SCALE	/* pixel oversampling scale */
++   , GDMP_hypertext	/* hypertext support */
++   , GDMP_boxed_text	/* boxed text labels */
++   , NULL		/* modify_plots */
++   , GDMP_dashtype	/* Version 5 dashtype support */
++TERM_TABLE_END (gdmp_driver)
++
++#undef LAST_TERM
++#define LAST_TERM gdmp_driver
++
++TERM_TABLE_START (domterm_driver)
++    "domterm", "DomTerm terminal emulator with embedded SVG",
++    0 /* xmax */ , 0 /* ymax */ , 0 /* vchar */ , 0 /* hchar */ ,
++    0 /* vtic */ , 0 /* htic */ ,
++    GDMP_options, GDMP_init, GDMP_reset, GDMP_text, null_scale, GDMP_graphics,
++    GDMP_move, GDMP_vector, GDMP_linetype, GDMP_put_text, GDMP_text_angle,
++    GDMP_justify_text, GDMP_point, do_arrow, GDMP_set_font, do_pointsize,
++    TERM_CAN_DASH | TERM_ALPHA_CHANNEL|TERM_LINEWIDTH,
++    0 /* suspend */, 0 /* resume */ , GDMP_fillbox, GDMP_linewidth,
++#ifdef USE_MOUSE
++   NULL, 0, 0, 0, 0, /* pseudo-mousing: replace NULL with term_waitforinput */
++#endif
++   GDMP_make_palette,
++   GDMP_previous_palette,
++   GDMP_set_color,
++   GDMP_filled_polygon
++#ifdef WRITE_PNG_IMAGE
++    , GDMP_image
++#else
++    , NULL	/* image */
++#endif
++   , ENHgdmp_OPEN, ENHgdmp_FLUSH, ENHgdmp_writec
++   , GDMP_layer	/* layer */
++   , GDMP_path 	/* path */
++   , GDMP_SCALE	/* pixel oversampling scale */
++   , GDMP_hypertext	/* hypertext support */
++   , GDMP_boxed_text	/* boxed text labels */
++   , NULL		/* modify_plots */
++   , GDMP_dashtype	/* Version 5 dashtype support */
++TERM_TABLE_END (domterm_driver)
++
++#undef LAST_TERM
++#define LAST_TERM domterm_driver
++
++#endif /* TERM_TABLE */
++#endif /* TERM_PROTO_ONLY */
++
++#ifdef TERM_HELP
++START_HELP(gdmp)
++""
++END_HELP(gdmp)
++
++START_HELP(domterm)
++""
++END_HELP(domterm)
++#endif /* TERM_HELP */
+-- 
+2.45.1
+

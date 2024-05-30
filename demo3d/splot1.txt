@@ -1,0 +1,6 @@
+set terminal gdmp background 'white' size 400,360
+set title "Surface plot example"
+set xrange [-pi/2:pi/2]; set yrange [-pi/2:pi/2]; set zrange [-1:2]
+set pm3d
+set isosamples 15,15; set samples 15,15;
+splot cos(param*x)*cos(param*y)

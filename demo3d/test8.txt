@@ -1,0 +1,13 @@
+set terminal gdmp background 'white' size 400,360
+set title 'Parametric plot'
+set parametric
+set trange [0:2*pi]
+set style line 1 linecolor rgb '#ff1133' linetype 1 linewidth 32
+
+om = param
+
+fx(t) = 16*(sin(om*t)**3)
+fy(t) = 13*cos(om*t)-5*cos(om*2*t)-2*cos(om*3*t)-cos(om*4*t)
+
+plot fx(t),fy(t) linestyle 1
+

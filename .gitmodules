@@ -1,0 +1,6 @@
+[submodule "godot-cpp"]
+	path = godot-cpp
+	url = https://github.com/godotengine/godot-cpp.git
+[submodule "gnuplot-gnuplot-main"]
+	path = gnuplot
+	url = git://git.code.sf.net/p/gnuplot/gnuplot-main

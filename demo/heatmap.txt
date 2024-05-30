@@ -1,0 +1,27 @@
+# Example taken from
+# https://github.com/TheFox/gnuplot-examples/blob/master/scripts/headmap.gp
+
+set terminal gdmp
+
+set title 'Heatmap'
+set xlabel 'x'
+set ylabel 'y'
+
+unset key
+set tics out nomirror
+
+set dgrid3d 30, 30
+set pm3d map
+
+set xrange [10:14]
+set xtics 1
+set mxtics 1
+
+set yrange [20:24]
+set ytics 1
+set mytics 1
+
+set cbrange [60:65]
+set cbtics 1
+
+splot 'df' using 1:2:3 notitle

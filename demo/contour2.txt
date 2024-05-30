@@ -1,0 +1,11 @@
+set terminal gdmp background 'white'
+set title "Contour plot example"
+# set xrange [-pi:pi]; set yrange [-pi:pi];
+set view map
+set contour
+unset surface
+set cntrparam levels auto 20
+
+r = om
+
+splot sin(r*(cos(1*x/3)+sin(1*y/3)))+sin(r*(cos(2*x/3)+sin(2*y/3)))+sin(r*(cos(3*x/3)+sin(3*y/3))) notitle

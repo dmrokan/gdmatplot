@@ -1,0 +1,18 @@
+set terminal gdmp background 'yellow' font ',16'
+set title 'Line'
+set xlabel 'x'
+set ylabel 'y'
+
+set grid
+set key below center horizontal noreverse enhanced autotitle box dashtype solid
+set tics out nomirror
+set border 3 front linetype black linewidth 1.0 dashtype solid
+
+set xrange [1:5]
+set xtics 1, .5, 5
+set mxtics 1
+set tics font ",8" textcolor 'black'
+
+set style line 1 linecolor rgb '#1100ff' linetype 1 linewidth 2
+
+plot 'df' using 1:2 pt 'W' title 'data', 'df' using 1:2 with lines linestyle 1 title 'data'

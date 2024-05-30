@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3 uid="uid://bp60mhp6oh3vm"]
+
+[ext_resource type="Script" path="res://gui_panel_3d.gd" id="1_2a10a"]
+[ext_resource type="Script" path="res://GDMatPlotNative.gd" id="2_b3h3p"]
+
+[sub_resource type="QuadMesh" id="1"]
+size = Vector2(3, 2)
+
+[sub_resource type="ViewportTexture" id="2"]
+viewport_path = NodePath("SubViewport")
+
+[sub_resource type="StandardMaterial3D" id="3"]
+resource_local_to_scene = true
+transparency = 1
+shading_mode = 0
+albedo_texture = SubResource("2")
+
+[node name="GUIPanel3D" type="Node3D"]
+process_mode = 3
+script = ExtResource("1_2a10a")
+
+[node name="VisibleOnScreenNotifier3D" type="VisibleOnScreenNotifier3D" parent="."]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0, 0, 0)
+
+[node name="SubViewport" type="SubViewport" parent="."]
+gui_embed_subwindows = true
+size = Vector2i(400, 360)
+
+[node name="GDMatPlotNative" type="GDMatPlotNative" parent="SubViewport"]
+script = ExtResource("2_b3h3p")
+
+[node name="Quad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0, 0, 0)
+mesh = SubResource("1")
+surface_material_override/0 = SubResource("3")

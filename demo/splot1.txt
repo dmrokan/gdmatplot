@@ -1,0 +1,6 @@
+set terminal gdmp background 'white'
+set title "Surface plot\nexample"
+set xrange [-pi/2:pi/2]; set yrange [-pi/2:pi/2]; set zrange [-1:2]
+set pm3d
+set isosamples 15,15; set samples 15,15;
+splot cos(om*x)*cos(om*y)

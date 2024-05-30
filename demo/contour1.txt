@@ -1,0 +1,11 @@
+set terminal gdmp background 'white'
+set title "Contour plot example"
+#set xrange [-pi/8:pi/8]; set yrange [-pi/8:pi/8];
+set view map
+set contour
+unset surface
+set cntrparam levels auto 20
+
+splot sin(0.1*om*x*y) notitle
+#splot asin(om*x)+asin(om*y) notitle
+
