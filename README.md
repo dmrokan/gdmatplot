@@ -1,5 +1,5 @@
 # GDMatPlot
-This native [Godot](https://github.com/godotengine/godot) extension embeds [GNUPlot](http://www.gnuplot.info/) command line into the game engine by exploiting GNUPlot's flexibility for declaring custom graphical output terminals. You can create static or dynamic plots for games or GUI applications. Plots can be embedded into 3D world by using sub viewports. It can plot custom dataframes defined in scripts. Also, you can provide a `PackedFloat64Array` as dataframe which is a more performant method. Please, see examples in `demo` folder.
+This native [Godot](https://github.com/godotengine/godot) extension embeds [GNUPlot](http://www.gnuplot.info/) command line into the game engine by exploiting GNUPlot's flexibility for declaring custom graphical output terminals. You can create static or dynamic plots for games or GUI applications and it does not require GNUPlot executable. Plots can be embedded into 3D world by using sub viewports. It can plot custom dataframes defined in scripts. Also, you can provide a `PackedFloat64Array` as dataframe which is a more performant method. Please, see examples in `demo` folder.
 
 ## How it works
 I created a custom graphical terminal named by *gdmp.trm* which redirects GNUPlot's drawing calls to Godot's CanvasItem drawing methods. *gdmp.trm* is based on SVG terminal implemented in `gnuplot/term/svg.trm`. The common method to embed GNUPlot into an application is running it as a separate process and communicating through an Inter Process Communication (IPC) method. However, I came up with a hack to embed it into the plugin itself as a separate shared library after some tedious work. GDMP terminal and mentioned hack can be found in `gdmatplot-gnuplot.patch`.
@@ -20,6 +20,7 @@ As explained above, this software is based on a hack that drags it into a indefi
 - Command line breaks by using backslash character is not working
 - Clean termination after error is not working
 - Z-ordering of line segments in 3D plots is not working
+- Can not load dataframes from files, GNUPlot's I/O functionality is disabled
 
 ### Note
 You should first test your sequence of GNUPlot commands on an original build with version number '6.0.0' by selecting svg terminal as the graphical output option and make sure it does not emit warning or error messages. Providing erroneous commands to GDMatPlot may cause SEGFAULT or memory leaks.
@@ -37,6 +38,8 @@ It includes several test plots which utilizes a large aspect of GNUPlot of funct
 In this demo, similar test plots are embedded into 3D game world by using subviewports.
 
 ![Demo3D screenshot](docs/demo3d_screenshot.png?raw=true)
+
+[demo3d_screencast.webm](https://github.com/dmrokan/gdmatplot/assets/5034947/c8745b1c-b6ae-4959-bc93-946bba6f55fe)
 
 ## Classes
 ### GDMatPlotNative
