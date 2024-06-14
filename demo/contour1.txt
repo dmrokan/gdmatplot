@@ -4,7 +4,7 @@ set title "Contour plot example"
 set view map
 set contour
 unset surface
-set cntrparam levels auto 20
+set cntrparam levels auto 10
 
 splot sin(0.1*om*x*y) notitle
 #splot asin(om*x)+asin(om*y) notitle

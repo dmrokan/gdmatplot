@@ -5,7 +5,8 @@ set view map
 set contour
 unset surface
 set cntrparam levels auto 20
+set style line 1 linewidth 1
 
 r = om
 
-splot sin(r*(cos(1*x/3)+sin(1*y/3)))+sin(r*(cos(2*x/3)+sin(2*y/3)))+sin(r*(cos(3*x/3)+sin(3*y/3))) notitle
+splot sin(r*(cos(1*x/3)+sin(1*y/3)))+sin(r*(cos(2*x/3)+sin(2*y/3)))+sin(r*(cos(3*x/3)+sin(3*y/3))) notitle linestyle 1

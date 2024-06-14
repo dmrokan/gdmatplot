@@ -1,8 +1,10 @@
 extends GDMatPlotNative
 
+const _renderer_period: int = 50
+
 var _lines: Array = []
 var _om: float = 1
-var _om_inc: float = 5e-3
+var _om_inc: float = 1e-2
 
 func test_file(fn: String):
 	if _lines.is_empty():
@@ -64,11 +66,15 @@ func _ready():
 	if !error:
 		lib_loaded = true
 		set_dataframe(dataframe, 2)
+		start_renderer(_draw_commands)
+		set_rendering_period(_renderer_period)
 
-func _draw():
+func _draw_commands():
 	if lib_loaded:
 		load_dataframe()
 		test_file("splot1")
 
+		queue_redraw()
+
 func _process(delta):
-	queue_redraw()
+	pass

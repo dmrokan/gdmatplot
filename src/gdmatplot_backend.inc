@@ -314,7 +314,6 @@ struct GDMatPlotMethods {
 	void (*vector)(void *, unsigned int, unsigned int);
 	void (*linetype)(void *, int);
 	void (*put_text)(void *, unsigned int, unsigned int, const char *);
-	/* the following are optional. set term ensures they are not NULL */
 	int (*text_angle)(void *, float); /* Changed from int to double in version 5.5 */
 	int (*justify_text)(void *, int);
 	void (*point)(void *, unsigned int, unsigned int, int);
@@ -327,57 +326,20 @@ struct GDMatPlotMethods {
 	void (*linewidth)(void *, double linewidth);
 
 	int (*make_palette)(void *, void *palette);
-	/* 1. if palette==NULL, then return nice/suitable
-	   maximal number of colours supported by this terminal.
-	   Returns 0 if it can make colours without palette (like
-	   postscript).
-	   2. if palette!=NULL, then allocate its own palette
-	   return value is undefined
-	   3. available: some negative values of max_colors for whatever
-	   can be useful
-	 */
 	void (*previous_palette)(void *);
-	/* release the palette that the above routine allocated and get
-	   back the palette that was active before.
-	   Some terminals, like displays, may draw parts of the figure
-	   using their own palette. Those terminals that possess only
-	   one palette for the whole plot don't need this routine.
-	 */
 	void (*set_color)(void *, unsigned int);
-	/* EAM November 2004 - revised to take a pointer to struct rgb_color,
-	   so that a palette gray value is not the only option for
-	   specifying color.
-	 */
 	void (*filled_polygon)(void *, int, void *, int);
 	void (*image)(void *, unsigned int, unsigned int, void *, void *, unsigned int);
-
-	/* Enhanced text mode driver call-backs */
 	void (*enhanced_open)(void *, char *fontname, double fontsize,
 			double base, char widthflag, char showflag,
 			int overprint);
 	void (*enhanced_flush)(void *);
 	void (*enhanced_writec)(void *, int c);
-
-	/* Driver-specific synchronization or other layering commands.
-	 * Introduced as an alternative to the ugly sight of
-	 * driver-specific code strewn about in the core routines.
-	 * As of this point (July 2005) used only by pslatex.trm
-	 */
 	void (*layer)(void *, unsigned int);
-
-	/* Begin/End path control.
-	 * Needed by PostScript-like devices in order to join the endpoints of
-	 * a polygon cleanly.
-	 */
 	void (*path)(void *, int p);
-
-	/* Pass hypertext for inclusion in the output plot */
 	void (*hypertext)(void *, int type, const char *text);
-
 	void (*boxed_text)(void *, unsigned int, unsigned int, int);
-
 	void (*modify_plots)(void *, unsigned int operations, int plotno);
-
 	void (*dashtype)(void *, int type, void *custom_dash_pattern);
 
 	/* ======================================== */
@@ -428,9 +390,6 @@ struct GDMatPlotMethods {
 
 	/* ======================================== */
 
-	/* Scale factor for converting terminal coordinates to output
-	 * pixel coordinates.  Used to provide data for external mousing code.
-	 */
 	double tscale;
 	int flags;
 

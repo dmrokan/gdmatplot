@@ -87,7 +87,7 @@ protected:
 
 	int _status{};
 	int _dataframe_column_count{};
-	bool _is_initialized{false};
+	bool _is_loaded{ false };
 
 	static void _bind_methods() {}
 
@@ -100,7 +100,7 @@ public:
 	}
 
 	virtual int load(String &p_path) {
-		_is_initialized = false;
+		_is_loaded = false;
 
 		if (!FileAccess::file_exists(p_path))
 			return ERR_NOT_FOUND;
@@ -109,13 +109,13 @@ public:
 
 		set_path(p_path);
 
-		_is_initialized = true;
+		_is_loaded = true;
 
 		return 0;
 	};
 
 	virtual int unload() {
-		_is_initialized = false;
+		_is_loaded = false;
 
 		return ERR_NOT_INITIALIZED;
 	};
@@ -157,8 +157,8 @@ public:
 		return String(cstr);
 	}
 
-	bool is_initialized() {
-		return _is_initialized;
+	bool is_loaded() {
+		return _is_loaded;
 	}
 };
 

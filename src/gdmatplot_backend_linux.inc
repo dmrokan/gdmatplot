@@ -29,7 +29,7 @@
 int GDMatPlotBackend::load(String &p_path) {
 	int result = GDMatPlotBackendBase::load(p_path);
 
-	_is_initialized = false;
+	_is_loaded = false;
 
 	if (result) {
 		set_status(result);
@@ -104,7 +104,7 @@ int GDMatPlotBackend::load(String &p_path) {
 		goto failed;
 	}
 
-	_is_initialized = true;
+	_is_loaded = true;
 
 	set_status(0);
 	return 0;
@@ -125,7 +125,7 @@ int GDMatPlotBackend::unload() {
 		return result;
 	}
 
-	_is_initialized = false;
+	_is_loaded = false;
 
 	set_status(ERR_NOT_INITIALIZED);
 	return ERR_NOT_INITIALIZED;

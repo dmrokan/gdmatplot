@@ -15,8 +15,8 @@ As explained above, this software is based on a hack that drags it into a indefi
 - Dashed plot types is not working
 - Unicode text is not working
 - Can not change font family by using GNUPlot font commands
-- Arrow plots is not working
-- Spider plots is not working
+- Arrow plots are not working
+- Spider plots are not working
 - Command line breaks by using backslash character is not working
 - Clean termination after error is not working
 - Z-ordering of line segments in 3D plots is not working
@@ -44,8 +44,9 @@ In this demo, similar test plots are embedded into 3D game world by using subvie
 Base class of GDMatPlot derived from Node2D.
 
 #### Methods
-- `load_gnuplot(p_path: String = "user://libgnuplot.so")`: Loads GNUPlot shared library by using `p_path` as a temporary loading location. This function must be called initially, preferably in `_ready()` method. It returns `0` on success, a negative value on error.
-- `run_command(p_cmd: String)`: Redirects `p_cmd` to GNUPlot's command line parser. It must be called in `_draw()` method because it calls `CanvasItems` draw primitives.
+- `draw_plot()`: Overrides `Node2D` `_draw` method. See the example below for its usage.
+- `load_gnuplot(p_path: String = "user://libgnuplot.so")`: Loads GNUPlot shared library by using `p_path` as a temporary loading location. This function must be called initially, preferably in `_ready()` method. It returns `0` on success, a negative value on error. Note that, if there is already a file at `p_path`, it will be overwritten.
+- `run_command(p_cmd: String)`: Redirects `p_cmd` to GNUPlot's command line parser.
 - `set_dataframe(p_data: PackedFloat64Array, p_column_count: int)`: Set dataframe to be parsed and plotted. `p_data` is assumed to be in row major format and its size must be divisible by `p_column_count`. Imitates GNUPlot's numeric dataframe loading from a text file.
 ```gdscript
 var df: PackedFloat64Array = PackedFloat64Array([ 1, 2, 3, 4, 5, 6, 7... ])
@@ -59,6 +60,65 @@ set_dataframe(df, 3)
 # Check gnuplot documentation and examples how to plot dataframe columns
 ```
 - `load_dataframe()`: Reset dataframe parser's internal state. It should be called at the beginning of each draw call.
+- `start_renderer(p_loop_func: Callable)`: GNUplot command parser and renderer should be run in a separate thread beacuse it introduces an easily recognizable performance decrease. You should call `run_command` in the renderer loop function `p_loop_func`.
+- `stop_renderer()`: Stops renderer thread.
+- `set_rendering_period(p_loop_period: int)`: Set the time rate of calling `p_loop_func` defined by `start_renderer`. The unit of `p_loop_period` is milliseconds.
+
+#### Properties
+- `transparency: float`: Sets plot's background transparency.
+- `antialiasing: bool`: Enable/disable antialiased line drawing.
+
+## Usage
+
+Since version 0.2.0 GDMatPlot imposes a specific programming pattern because GNUPlot's command parsing and rendering add an overhead which does not fit the performace requirements of a game engine. Instead of directly drawing the results of `run_command` in `_draw` function, `run_command` it is called in a renderer loop which is called in a separate thread. In the renderer thread GNUPlot processes commands and generates draw line, polygon, point etc. calls which are encoded in an efficient data structure. Then, a new draw call is queued by calling `queue_redraw` as shown in the example below. When new drawing triggered, encoded draw calls are decoded and converted to `CanvasItem`s `draw_polyline`, `draw_polygon`, etc. calls. This method absorbs the negative effect of GNUPlot's command parsing on the frame rate (FPS).
+
+```gdscript
+var dataframe: PackedFloat64Array
+var lib_loaded: bool = false
+var figure_size: Vector2i = Vector2i(480, 640)
+var renderer_period: int = 100
+func _ready():
+	var dataframe.resize(100)
+	# ... fill data frame ... #
+
+	var error: int = load_gnuplot()
+	if !error:
+		lib_loaded = true
+		set_dataframe(dataframe, 4) # 4 coloumns 100/4 = 25 rows
+		start_renderer(_draw_commands)
+		set_rendering_period(renderer_period)
+
+func _draw_commands():
+	if lib_loaded:
+		load_dataframe()
+		run_command("set terminal gdmp size %d,%d" % [figure_size.x, figure_size.y])
+		# ... other commands ... #
+		run_command("plot 'df' using 1:3 with lines linestyle 1, 'df' using 2:3 with lines linestyle 3")
+
+		# You should always call this after running all GNUPlot commands.
+		queue_redraw()
+
+func update_dataframe():
+	# ... process dataframe ...#
+	if lib_loaded:
+		set_dataframe(dataframe, 4)
+
+"""
+You don't need to define _draw function. GDMatPlotNative overrides it and draw_plot will be autmatically called. You should define _draw here if you want to draw some other stuff (e.g. an image) before and after draw_plot.
+"""
+func _draw():
+	# draw some stuff
+	if lib_loaded:
+		draw_plot()
+	# draw some other stuf
+
+func _process(delta):
+	update_dataframe()
+
+	if lib_loaded and some_condition:
+		# Pause renderer when ever you want by setting a very large period.
+		set_rendering_period(1000000000)
+```
 
 ## Build from source
 
@@ -72,8 +132,8 @@ cd gdmatplot
 git submodule update --init --recursive
 scons -f SConscript platform='<linux|windows>'
 cd godot_cpp
-scons target='<debug|release>' platform='<linux|windows>' arch='x86_64'
+scons target='<template_debug|template_release>' platform='<linux|windows>' arch='x86_64'
 cd ..
-scons target='<debug|release>' platform='<linux|windows>' arch='x86_64'
+scons target='<template_debug|template_release>' platform='<linux|windows>' arch='x86_64'
 ```
 You can visit Godot's [build system](https://docs.godotengine.org/en/stable/contributing/development/compiling/introduction_to_the_buildsystem.html) documentation for more information.

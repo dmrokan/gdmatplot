@@ -26,7 +26,7 @@ func _input(event):
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
-
+var cumt: float = 0
 func _process(delta):
 	var motion = Vector3(
 			Input.get_axis(&"move_left", &"move_right"),
@@ -41,3 +41,9 @@ func _process(delta):
 	velocity += MOVE_SPEED * delta * (transform.basis * motion)
 	velocity *= 0.85
 	position += velocity
+
+	if cumt > 0.25:
+		get_parent_node_3d().check_closest_room(Vector3(position))
+		cumt = 0
+
+	cumt += delta

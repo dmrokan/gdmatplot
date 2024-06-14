@@ -46,6 +46,7 @@ size_flags_vertical = 3
 [node name="Main" type="Node2D" parent="VBoxContainer/Tab1"]
 
 [node name="GDMatPlotNativeTest1_1" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
+transparency = 0.88
 script = ExtResource("1_t4ory")
 
 [node name="GDMatPlotNativeTest1_2" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
@@ -61,6 +62,7 @@ position = Vector2(620, 500)
 script = ExtResource("3_vtvmo")
 
 [node name="GDMatPlotNativeTest1_5" type="GDMatPlotNative" parent="VBoxContainer/Tab1/Main"]
+antialiasing = true
 position = Vector2(1240, 0)
 script = ExtResource("6_wk8ws")
 
@@ -83,6 +85,7 @@ position = Vector2(620, 0)
 script = ExtResource("9_x5nby")
 
 [node name="GDMatPlotNativeTest2_3" type="GDMatPlotNative" parent="VBoxContainer/Tab2/Main"]
+antialiasing = true
 position = Vector2(0, 500)
 script = ExtResource("10_evxsl")
 
@@ -91,6 +94,7 @@ position = Vector2(620, 500)
 script = ExtResource("8_envhi")
 
 [node name="GDMatPlotNativeTest2_5" type="GDMatPlotNative" parent="VBoxContainer/Tab2/Main"]
+antialiasing = true
 position = Vector2(1240, 0)
 script = ExtResource("8_1lmno")
 
@@ -110,6 +114,7 @@ scale = Vector2(1.5, 1)
 script = ExtResource("14_i8fjc")
 
 [node name="GDMatPlotNativeTest3_2" type="GDMatPlotNative" parent="VBoxContainer/Tab3/Main"]
+antialiasing = true
 position = Vector2(930, 0)
 scale = Vector2(1.5, 1)
 script = ExtResource("15_2iftq")

@@ -26,14 +26,12 @@
 #ifndef GDMATPLOT_DEFS_H_
 #define GDMATPLOT_DEFS_H_
 
-#include <cstdio>
 #include <cstdint>
-
-#define GDMATPLOT_DEBUG_PRINT
+#include <cstdio>
 
 #define GDMATPLOT_SET_VERSION(a, b, c) (a << 20 | b << 10 | c)
 
-static constexpr uint32_t GDMATPLOT_VERSION = GDMATPLOT_SET_VERSION(0, 1, 0);
+static constexpr uint32_t GDMATPLOT_VERSION = GDMATPLOT_SET_VERSION(0, 2, 0);
 
 #ifdef GDMATPLOT_DEBUG_PRINT
 

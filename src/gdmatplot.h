@@ -26,17 +26,13 @@
 #ifndef GDMATPLOT_H_
 #define GDMATPLOT_H_
 
-#include <string.h>
-
-#include <godot_cpp/classes/font.hpp>
-#include <godot_cpp/classes/geometry2d.hpp>
 #include <godot_cpp/classes/node2d.hpp>
 #include <godot_cpp/classes/ref.hpp>
-#include <godot_cpp/classes/theme.hpp>
-#include <godot_cpp/classes/theme_db.hpp>
+#include <godot_cpp/classes/semaphore.hpp>
+#include <godot_cpp/classes/thread.hpp>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/core/mutex_lock.hpp>
 #include <godot_cpp/variant/color.hpp>
-#include <godot_cpp/variant/packed_color_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/vector2.hpp>
@@ -44,13 +40,107 @@
 #include "gdmatplot_backend.h"
 #include "utils.h"
 
-// #define GDMP_MSG(fmt, ...) GDMATPLOT_V_DEBUG(fmt, __VA_ARGS__)
+#if defined(LINUX_ENABLED)
+#define GDMATPLOT_DEFAULT_LIBGNUPLOT_PATH "user://libgnuplot.so"
+#elif defined(WINDOWS_ENABLED)
+#define GDMATPLOT_DEFAULT_LIBGNUPLOT_PATH "user://libgnuplot.dll"
+#endif
+
+#ifdef GDMP_ENABLE_DEBUG_MESSAGE
+#define GDMP_MSG(fmt, ...) GDMATPLOT_V_DEBUG(fmt, __VA_ARGS__)
+#else
 #define GDMP_MSG(fmt, ...) \
 	do {                   \
 	} while (0)
-#define GDMP_MSG_V(fmt, ...) GDMATPLOT_V_DEBUG(fmt, __VA_ARGS__)
+#endif
 
 namespace godot {
+
+class GDMatPlotGNUPlotRenderer : public CallableCustom {
+	Callable _loop_func;
+	Ref<Semaphore> _sem;
+	Ref<Mutex> _lock;
+	int64_t _loop_period{ 1000 }; // Period in ms
+	bool _terminate{ false };
+	bool _paused{ false };
+
+	bool _is_terminated() const {
+		MutexLock lock(**_lock);
+		return _terminate;
+	}
+
+public:
+	GDMatPlotGNUPlotRenderer() {
+		_lock.instantiate();
+		_sem.instantiate();
+		_sem->post();
+		GDMATPLOT_DEBUG("## Created: GDMatPlotGNUPlotRenderer instance: %p", this);
+	}
+
+	~GDMatPlotGNUPlotRenderer() {
+		terminate();
+		_sem->post();
+		GDMATPLOT_DEBUG("## Deleted: GDMatPlotGNUPlotRenderer instance: %p", this);
+	}
+
+	static bool compare_equal_func(const CallableCustom *p_a, const CallableCustom *p_b) {
+		return p_a == p_b;
+	}
+
+	static bool compare_less_func(const CallableCustom *p_a, const CallableCustom *p_b) {
+		return (void *)p_a < (void *)p_b;
+	}
+
+	uint32_t hash() const override {
+		return 0x999999FFu;
+	}
+
+	String get_as_text() const override {
+		return "<GDMatPlotGNUPlotRenderer>";
+	}
+
+	CompareEqualFunc get_compare_equal_func() const override {
+		return &GDMatPlotGNUPlotRenderer::compare_equal_func;
+	}
+
+	CompareLessFunc get_compare_less_func() const override {
+		return &GDMatPlotGNUPlotRenderer::compare_less_func;
+	}
+
+	bool is_valid() const override {
+		return true;
+	}
+
+	ObjectID get_object() const override {
+		return ObjectID();
+	}
+
+	void set_loop_period(int64_t period) {
+		MutexLock lock(**_lock);
+		_loop_period = period;
+	}
+
+	int64_t get_loop_period() const {
+		MutexLock lock(**_lock);
+		return _loop_period;
+	}
+
+	void terminate() {
+		MutexLock lock(**_lock);
+		_terminate = true;
+	}
+
+	void set_loop_func(const Callable &c) {
+		_loop_func = c;
+	}
+
+	void trigger_render() {
+		_sem->post();
+	}
+
+	void call(const Variant **p_arguments, int p_argcount, Variant &r_return_value,
+			GDExtensionCallError &r_call_error) const override;
+};
 
 class GDMatPlotNative : public Node2D {
 	GDCLASS(GDMatPlotNative, Node2D)
@@ -68,6 +158,13 @@ protected:
 		ERR_LIBGNUPLOT_NOT_INITIALIZED,
 		ERR_MISMATCHED_DIMENSION,
 		ERR_NOT_INITIALIZED,
+		ERR_GNUPLOT_RENDERER_START,
+	};
+
+	enum DrawStage {
+		UNDEFINED_STAGE = 0,
+		GNUPLOT_STAGE,
+		GODOT_STAGE,
 	};
 
 	struct BackendParams {
@@ -227,18 +324,103 @@ protected:
 		unsigned char path_is_open{};
 	};
 
+	struct EncodedDrawing {
+		enum Type {
+			NONE = 0,
+			LINE,
+			RECT,
+			POLYGON,
+			TEXT,
+			INIT,
+			VECTOR,
+			POINT,
+			FILLBOX,
+			PATH_OPEN,
+		};
+
+		PackedByteArray draw_command;
+		PackedVector2Array path_points;
+		size_t _size{};
+		unsigned int path_color{};
+		float path_width{};
+		int type{ NONE };
+
+		EncodedDrawing();
+		EncodedDrawing(const EncodedDrawing &other);
+		void operator=(const EncodedDrawing &other);
+
+		void resize();
+
+		template <typename T, int S = sizeof(T)>
+		void encode(T &d) {
+			while (S + _size >= draw_command.size())
+				resize();
+
+			std::memcpy(draw_command.ptrw() + _size, &d, S);
+			_size += S;
+		}
+
+		void encode_color(const Color &color);
+		void encode_draw_rect(float x, float y, float width, float height, const Color &c);
+		void decode_draw_rect(GDMatPlotNative *self);
+		void encode_draw_line(float x1, float y1, float x2, float y2, float width, const Color &c);
+		void decode_draw_line(GDMatPlotNative *self);
+		void encode_put_text(float x, float y, float text_angle, int font_size, int justify,
+				const Color &c, const String &s);
+		void decode_put_text(GDMatPlotNative *self);
+		void encode_point(float x, float y, float size, const Color &c);
+		void decode_point(GDMatPlotNative *self);
+		void encode_filled_polygon(int point_count, const int *corners, const Color &c);
+		void decode_filled_polygon(GDMatPlotNative *self);
+		void encode_init(float x, float y, float width, float height, const Color &c);
+		void decode_init(GDMatPlotNative *self);
+		void encode_vector(float x1, float y1, float x2, float y2, float width, const Color &c);
+		void decode_vector(GDMatPlotNative *self);
+		void encode_fillbox(float x, float y, float width, float height, const Color &c);
+		void decode_fillbox(GDMatPlotNative *self);
+		void encode_path_is_open(PackedVector2Array &points, unsigned int is_open,
+				float width, const Color &c);
+		void decode_path_is_open(GDMatPlotNative *self);
+		void decode(GDMatPlotNative *self);
+	};
+
 	BackendParams _bp;
+	PackedVector2Array _path_points;
+	std::vector<EncodedDrawing> _encoded_drawings;
+	GDMatPlotGNUPlotRenderer *_gnuplot_render_thread_func{};
+	Ref<Thread> _gnuplot_render_thread;
+	Ref<Mutex> _get_set_stage_lock;
 	Ref<GDMatPlotBackend> _library;
+	int _stage{ UNDEFINED_STAGE };
+	float _background_alpha{ 1.0 };
+	bool _antialiased{ false };
 
 	static void _bind_methods();
 
+	void _set_stage(int p_stage);
+	int _get_stage();
+	void _draw_plot();
+	void _draw_path_points(bool is_open);
+
 public:
 	GDMatPlotNative();
+	virtual ~GDMatPlotNative();
 
-	Variant load_gnuplot(String p_path);
+	void _draw() override;
+
+	void set_background_transparency(float p_transparency);
+	float get_background_transparency() const;
+	void set_antialiased(bool p_antialiased);
+	bool get_antialiased() const;
+
+	Variant load_gnuplot(String p_path = GDMATPLOT_DEFAULT_LIBGNUPLOT_PATH);
 	Variant run_command(String p_cmd);
 	Variant set_dataframe(PackedFloat64Array frame, int p_column_count);
 	Variant load_dataframe();
+	Variant start_renderer(Callable p_loop_func);
+	void set_rendering_period(int64_t p_period);
+	void stop_renderer();
+
 	Variant get_version();
 	Variant get_gnuplot_version();
 

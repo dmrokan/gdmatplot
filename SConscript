@@ -1,6 +1,5 @@
 from subprocess import run, CalledProcessError
 import os
-import time
 
 try:
 	run(["rm", "-f", "gdmp.trm"], cwd="./gnuplot/term", check=True)

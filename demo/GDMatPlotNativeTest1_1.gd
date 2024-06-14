@@ -1,7 +1,6 @@
 extends GDMatPlotNative
 
-const xsize: float = 640
-const ysize: float = 480
+const _renderer_period: int = 10
 
 func _linspace(start: float, end: float, N: int):
 	var x: PackedFloat64Array = PackedFloat64Array()
@@ -35,22 +34,26 @@ func _ready():
 	var y = _cos(x, 2 * PI)
 
 	dataframe.resize(400)
-	var s = 0.05
-	var rho = 3.85699
+	var val = 0
+	var val_inc = 0.05
 	for i in range(dataframe.size() / 2):
 		dataframe[2*i+0] = i * 0.1
-		dataframe[2*i+1] = s
-		s = rho * s * (1 - s)
+		dataframe[2*i+1] = val
+		val += val_inc
+		if val >= 1 or val <= 0:
+			val_inc *= -1
 
 	var error = load_gnuplot()
 	if !error:
 		print("GNUPlot version " + get_gnuplot_version())
 		lib_loaded = true
 		set_dataframe(dataframe, 2)
+		start_renderer(_draw_commands)
+		set_rendering_period(_renderer_period)
 
 var _figure_size: Vector2i = Vector2i(640, 480)
-var _figure_size_inc: Vector2i = Vector2i(1, 1)
-func _draw():
+var _figure_size_inc: Vector2i = Vector2i(2, 2)
+func _draw_commands():
 	if lib_loaded:
 		load_dataframe()
 		run_command("set terminal gdmp size %d,%d" % [_figure_size.x, _figure_size.y])
@@ -60,12 +63,17 @@ func _draw():
 		run_command("set yrange [-0.1:1.35]")
 		run_command("set style fill solid 1.0")
 		run_command("set encoding utf8")
-		run_command("plot (sin(x)+1)/2 with lines, 'logistic map' with lines pt 'u'")
+		run_command("plot (sin(x)+1)/2 with lines lw 2, 'sawtooth wave' with lines lw 4")
 
 		_figure_size += _figure_size_inc
 
 		if _figure_size.x > 640 or _figure_size.x < 426:
 			_figure_size_inc *= -1
 
+		queue_redraw()
+
+func _draw():
+	draw_plot()
+
 func _process(delta):
-	queue_redraw()
+	pass

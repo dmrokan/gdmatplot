@@ -1,6 +1,7 @@
 extends Node3D
 
 var _gnuplot_scene = preload("res://gui_panel_3d.tscn")
+var _rooms: Dictionary = {}
 
 func _ready():
 	generate_plots()
@@ -64,7 +65,7 @@ func generate_plots():
 		{ "name": "splot2", "redraw_period": 1e-1, "param_bounds": [ 0.5, 3 ], "param_increment": 3e-2  },
 		{ "name": "splot1", "redraw_period": 1e-1, "param_bounds": [ 0.5, 3 ], "param_increment": 3e-2 },
 		{ "name": "airfoil1", "redraw_period": INF, "param_bounds": [ 0.5, 3 ], "param_increment": 3e-2 },
-		{ "name": "contour2", "redraw_period": 1e-1, "param_bounds": [ 0.5, 1.5 ], "param_increment": 3e-2 },
+		{ "name": "contour2", "redraw_period": 1e-1, "param_bounds": [ 0.5, 4 ], "param_increment": 3e-2 },
 		{ "name": "test7", "redraw_period": 1e-1, "param_bounds": [ 0.5, 8 ], "param_increment": 1e-2 },
 		{ "name": "test8", "redraw_period": 1e-1, "param_bounds": [ 1.1, 24 ], "param_increment": 1e-1 },
 		]
@@ -79,6 +80,8 @@ func generate_plots():
 				room.visible = false
 			continue
 
+		var plots: Array = []
+
 		var plot = _gnuplot_scene.instantiate()
 		plot.transform = Transform3D(transform1)
 		plot.transform = plot.transform.rotated_local(Vector3(0, 1, 0), 3 * PI / 4)
@@ -87,6 +90,7 @@ func generate_plots():
 		var script_name = scripts[script_index]["name"]
 		var redraw_period = scripts[script_index]["redraw_period"]
 		plot.set_gnuplot_script_and_params(script_name, scripts[script_index]["param_increment"], scripts[script_index]["param_bounds"], redraw_period)
+		plots.append(plot)
 
 		plot =_gnuplot_scene.instantiate()
 		plot.transform = Transform3D(transform2)
@@ -96,6 +100,7 @@ func generate_plots():
 		script_name = scripts[script_index]["name"]
 		redraw_period = scripts[script_index]["redraw_period"]
 		plot.set_gnuplot_script_and_params(script_name, scripts[script_index]["param_increment"], scripts[script_index]["param_bounds"], redraw_period)
+		plots.append(plot)
 
 		plot =_gnuplot_scene.instantiate()
 		plot.transform = Transform3D(transform3)
@@ -105,6 +110,7 @@ func generate_plots():
 		script_name = scripts[script_index]["name"]
 		redraw_period = scripts[script_index]["redraw_period"]
 		plot.set_gnuplot_script_and_params(script_name, scripts[script_index]["param_increment"], scripts[script_index]["param_bounds"], redraw_period)
+		plots.append(plot)
 
 		plot =_gnuplot_scene.instantiate()
 		plot.transform = Transform3D(transform4)
@@ -114,6 +120,9 @@ func generate_plots():
 		script_name = scripts[script_index]["name"]
 		redraw_period = scripts[script_index]["redraw_period"]
 		plot.set_gnuplot_script_and_params(script_name, scripts[script_index]["param_increment"], scripts[script_index]["param_bounds"], redraw_period)
+		plots.append(plot)
+
+		_rooms[room] = plots
 
 	$Rooms/Room/GUIPanel3D.transform = transform1.rotated_local(Vector3(0, 1, 0), 3 * PI / 4)
 	$Rooms/Room/GUIPanel3D2.transform = transform2.rotated_local(Vector3(0, 1, 0), 5 * PI / 4)
@@ -140,4 +149,23 @@ func generate_plots():
 	redraw_period = scripts[script_index]["redraw_period"]
 	$Rooms/Room/GUIPanel3D4.set_gnuplot_script_and_params(script_name, scripts[script_index]["param_increment"], scripts[script_index]["param_bounds"], redraw_period)
 
+	_rooms[$Rooms/Room] = [ $Rooms/Room/GUIPanel3D, $Rooms/Room/GUIPanel3D2, $Rooms/Room/GUIPanel3D3, $Rooms/Room/GUIPanel3D4 ]
 
+func check_closest_room(pos: Vector3):
+	var i: int = 0
+	var min_dist: float = INF
+	var min_dis_room = null
+	for room in _rooms:
+		var room_pos = Vector3(room.position)
+		var dist = (room_pos - pos).length()
+		if dist < min_dist:
+			min_dist = dist
+			min_dis_room = room
+
+		for p in _rooms[room]:
+			p.enable_draw(false)
+		i += 1
+
+	if min_dis_room:
+		for p in _rooms[min_dis_room]:
+			p.enable_draw()

@@ -36,30 +36,19 @@ func _load_library():
 	var error = load_gnuplot()
 	if !error:
 		lib_loaded = true
+		start_renderer(_draw_commands)
 
-func _draw():
-	if lib_loaded and not _gnuplot_script_filename.is_empty():
+func _draw_commands():
+	if not _gnuplot_script_filename.is_empty():
 		test_file(_gnuplot_script_filename)
-	else:
-		_load_library()
-		queue_redraw()
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-var cumt: float = 0.0
-var _period: float = 0.0
+	queue_redraw()
+
+func _ready():
+	_load_library()
+
 func _process(delta):
-	if _disable_draw:
-		return
-
-	if cumt > _period:
-		cumt = 0.0
-		queue_redraw()
-		_period = _redraw_period
-
-	if cumt > 1e9:
-		cumt = 0
-
-	cumt += delta
+	pass
 
 func set_gnuplot_script_and_params(fn: String, inc: float, bounds: Array, redraw_period: float = 1.0):
 	_gnuplot_script_filename = fn
@@ -67,7 +56,11 @@ func set_gnuplot_script_and_params(fn: String, inc: float, bounds: Array, redraw
 	_param_bounds[0] = bounds[0]
 	_param_bounds[1] = bounds[1]
 	_redraw_period = redraw_period
-	queue_redraw()
 
 func enable_draw(enable: bool = true):
 	_disable_draw = not enable
+	if enable:
+		set_rendering_period(int(1e3 * _redraw_period))
+	else:
+		set_rendering_period(1000000000)
+
