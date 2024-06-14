@@ -11,7 +11,7 @@ body:
   attributes:
     label: Godot version
     description: >
-      Specify the Git commit hash of your Godot build.
+      Specify the Git commit hash of your Godot build. You can find it by clicking About Godot menu button.
     placeholder: v4.2.2.stable.official [15073afe3]
   validations:
     required: true
@@ -24,6 +24,15 @@ body:
     placeholder: godot-4.2.2-stable [98c143a48]
   validations:
     required: false
+
+- type: input
+  attributes:
+    label: GDMatPlot version
+    description: >
+      If you build from source, specify the Git commit hash of GDMatPlot or specify the GDMatPlot version you are using.
+    placeholder: godot-4.2.2-stable [98c143a48] or v0.1.0
+  validations:
+    required: true
 
 - type: input
   attributes:

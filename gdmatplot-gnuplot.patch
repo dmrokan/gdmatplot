@@ -1,6 +1,6 @@
-From 2853773500d3e9a70d062d141ff146eeba7b169c Mon Sep 17 00:00:00 2001
+From 4d0a8e748a51b520553d6c7dd5d2d8eb6e73313f Mon Sep 17 00:00:00 2001
 From: Okan Demir <okndemir@gmail.com>
-Date: Thu, 30 May 2024 20:04:32 +0300
+Date: Fri, 14 Jun 2024 21:42:51 +0300
 Subject: [PATCH] GDMatPlot patch
 
 ---
@@ -74,8 +74,8 @@ Subject: [PATCH] GDMatPlot patch
  src/voxelgrid.h       |    1 +
  src/watch.h           |    2 +-
  src/xdg.h             |    4 +-
- term/gdmp.trm         | 1841 +++++++++++++++++++++++++++++++++++++++++
- 71 files changed, 2381 insertions(+), 52 deletions(-)
+ term/gdmp.trm         | 1828 +++++++++++++++++++++++++++++++++++++++++
+ 71 files changed, 2368 insertions(+), 52 deletions(-)
  create mode 100644 src/gdmp_disable_io.h
  create mode 100644 term/gdmp.trm
 
@@ -2039,10 +2039,10 @@ index 7510444ee..fc354b029 100644
  
 diff --git a/term/gdmp.trm b/term/gdmp.trm
 new file mode 100644
-index 000000000..c3d837bf5
+index 000000000..79e2c1ab6
 --- /dev/null
 +++ b/term/gdmp.trm
-@@ -0,0 +1,1841 @@
+@@ -0,0 +1,1828 @@
 +/*------------------------------------------------------------------------------------------------------------------------------------
 +	GNUPLOT - gdmp.trm
 +
@@ -2331,7 +2331,6 @@ index 000000000..c3d837bf5
 +static short GDMP_Pen_RealID(int);
 +static void GDMP_PathOpen(void);
 +static void GDMP_PathClose(void);
-+static void GDMP_AddSpaceOrNewline(void);
 +static void GDMP_GroupOpen(void);
 +static void GDMP_GroupClose(void);
 +static void GDMP_SetFont(const char *name, double size);
@@ -2447,14 +2446,6 @@ index 000000000..c3d837bf5
 +}
 +
 +/*------------------------------------------------------------------------------------------------------------------------------------
-+	GDMP_AddSpaceOrNewline
-+------------------------------------------------------------------------------------------------------------------------------------*/
-+static void
-+GDMP_AddSpaceOrNewline ()
-+{
-+}
-+
-+/*------------------------------------------------------------------------------------------------------------------------------------
 +	GDMP_SetFont
 +------------------------------------------------------------------------------------------------------------------------------------*/
 +static void
@@ -2541,8 +2532,6 @@ index 000000000..c3d837bf5
 +    GDMP_PathOpen ();
 +
 +    GDMP_path_count++;
-+
-+    GDMP_AddSpaceOrNewline ();
 +
 +    GDMP_xLast = x;
 +    GDMP_yLast = y;
@@ -3005,7 +2994,7 @@ index 000000000..c3d837bf5
 +GDMP_linetype (int linetype)
 +{
 +    GDMP_color_mode = TC_DEFAULT;
-+    if (TRUE || linetype != GDMP_LineType) {
++    if (linetype != GDMP_LineType) {
 +	GDMP_PathClose ();
 +	GDMP_GroupClose ();
 +	GDMP_LineType = linetype;
@@ -3138,8 +3127,6 @@ index 000000000..c3d837bf5
 +
 +	GDMP_CALL_METHOD(vector, x, y);
 +	GDMP_path_count++;
-+
-+	GDMP_AddSpaceOrNewline ();
 +
 +	GDMP_xLast = x;
 +	GDMP_yLast = y;
@@ -3885,5 +3872,5 @@ index 000000000..c3d837bf5
 +END_HELP(domterm)
 +#endif /* TERM_HELP */
 -- 
-2.45.1
+2.45.2
 

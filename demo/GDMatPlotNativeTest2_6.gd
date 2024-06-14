@@ -1,5 +1,7 @@
 extends GDMatPlotNative
 
+const _renderer_period: int = 10
+
 var _lines: Array = []
 
 func test_file(fn: String):
@@ -54,6 +56,8 @@ func _ready():
 	if !error:
 		lib_loaded = true
 		set_dataframe(dataframe, 3)
+		start_renderer(_draw_commands)
+		set_rendering_period(_renderer_period)
 
 func _update_dataframe():
 	for i in range(dataframe.size() / 3):
@@ -63,11 +67,12 @@ func _update_dataframe():
 
 	set_dataframe(dataframe, 3)
 
-func _draw():
+func _draw_commands():
 	if lib_loaded:
 		_update_dataframe()
-		load_dataframe()
 		test_file("test4")
 
+		queue_redraw()
+
 func _process(delta):
-	queue_redraw()
+	pass

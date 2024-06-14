@@ -31,35 +31,126 @@
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
-#include <godot_cpp/classes/random_number_generator.hpp>
-#include <godot_cpp/core/mutex_lock.hpp>
+#include <godot_cpp/classes/font.hpp>
+#include <godot_cpp/classes/geometry2d.hpp>
+#include <godot_cpp/classes/theme.hpp>
+#include <godot_cpp/classes/theme_db.hpp>
+#include <godot_cpp/variant/packed_color_array.hpp>
+#include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/classes/time.hpp>
 
 #include "gdmatplot_gnuplot_library.h"
 
-#if defined(LINUX_ENABLED)
-#define GDMATPLOT_DEFAULT_LIBGNUPLOT_PATH "user://libgnuplot.so"
-#elif defined(WINDOWS_ENABLED)
-#define GDMATPLOT_DEFAULT_LIBGNUPLOT_PATH "user://libgnuplot.dll"
-#endif
-#define GDMATPLOT_LIB_READ_SIZE 2048
-
 using namespace godot;
 
+static constexpr int GNUPLOT_RENDERER_BASE_DELAY = 16;
+static constexpr int GNUPLOT_RENDERER_DEFAULT_LOOP_PERIOD = 1000;
 static std::mutex _load_library_lock;
 
 void GDMatPlotNative::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("draw_plot"), &GDMatPlotNative::_draw);
 	ClassDB::bind_method(D_METHOD("load_gnuplot", "p_path"), &GDMatPlotNative::load_gnuplot,
 						 DEFVAL(String(GDMATPLOT_DEFAULT_LIBGNUPLOT_PATH)));
 	ClassDB::bind_method(D_METHOD("run_command", "p_cmd"), &GDMatPlotNative::run_command);
 	ClassDB::bind_method(D_METHOD("set_dataframe", "p_data", "p_column_count"),
 						 &GDMatPlotNative::set_dataframe);
 	ClassDB::bind_method(D_METHOD("load_dataframe"), &GDMatPlotNative::load_dataframe);
+	ClassDB::bind_method(D_METHOD("start_renderer", "p_loop_func"),
+						 &GDMatPlotNative::start_renderer);
+	ClassDB::bind_method(D_METHOD("set_rendering_period", "p_loop_period"),
+						 &GDMatPlotNative::set_rendering_period);
+	ClassDB::bind_method(D_METHOD("stop_renderer"), &GDMatPlotNative::stop_renderer);
 	ClassDB::bind_method(D_METHOD("get_version"), &GDMatPlotNative::get_version);
 	ClassDB::bind_method(D_METHOD("get_gnuplot_version"), &GDMatPlotNative::get_gnuplot_version);
+
+	ClassDB::bind_method(D_METHOD("set_background_transparency", "p_alpha"),
+	&GDMatPlotNative::set_background_transparency);
+	ClassDB::bind_method(D_METHOD("get_background_transparency"),
+						 &GDMatPlotNative::get_background_transparency);
+	ClassDB::add_property("GDMatPlotNative",
+						  PropertyInfo(Variant::FLOAT, "transparency", PROPERTY_HINT_RANGE, "0,1,0.01"),
+						  "set_background_transparency", "get_background_transparency");
+
+	ClassDB::bind_method(D_METHOD("set_antialiased", "p_antialiased"), &GDMatPlotNative::set_antialiased);
+	ClassDB::bind_method(D_METHOD("get_antialiased"), &GDMatPlotNative::get_antialiased);
+	ClassDB::add_property("GDMatPlotNative", PropertyInfo(Variant::BOOL, "antialiasing"),
+						  "set_antialiased", "get_antialiased");
 }
 
 GDMatPlotNative::GDMatPlotNative() {
 	_library.instantiate();
+	_get_set_stage_lock.instantiate();
+	_gnuplot_render_thread.instantiate();
+}
+
+GDMatPlotNative::~GDMatPlotNative() {
+	stop_renderer();
+}
+
+void GDMatPlotNative::_set_stage(int p_stage) {
+	MutexLock lock(**_get_set_stage_lock);
+	_stage = p_stage;
+}
+
+int GDMatPlotNative::_get_stage() {
+	MutexLock lock(**_get_set_stage_lock);
+	return _stage;
+}
+
+void GDMatPlotNative::_draw_plot() {
+	_set_stage(GODOT_STAGE);
+
+	if (_encoded_drawings.size() > 0) {
+		for (auto iter = _encoded_drawings.begin(); iter != _encoded_drawings.end(); ++iter) {
+			EncodedDrawing &fd = *iter;
+			fd.decode(this);
+		}
+
+		_encoded_drawings.clear();
+	}
+
+	_set_stage(GNUPLOT_STAGE);
+
+	if (_gnuplot_render_thread_func != nullptr)
+		_gnuplot_render_thread_func->trigger_render();
+}
+
+void GDMatPlotNative::_draw() {
+	_draw_plot();
+}
+
+void GDMatPlotNative::_draw_path_points(bool is_open) {
+	GDMP_MSG("## Called 'path_is_open(%uc)'", val);
+
+	if (_path_points.size() < 2) {
+		return;
+	}
+
+	double width = _bp.linewidth * _bp.linewidth_factor;
+	if (width < 1.0)
+		width = 1.0;
+
+	EncodedDrawing ed;
+	PackedVector2Array path_points(_path_points);
+	ed.encode_path_is_open(path_points, true, width, _bp.get_line_color());
+	_encoded_drawings.push_back(ed);
+	_path_points.clear();
+}
+
+void GDMatPlotNative::set_background_transparency(float p_transparency) {
+	_background_alpha = p_transparency;
+}
+
+float GDMatPlotNative::get_background_transparency() const {
+	return _background_alpha;
+}
+
+void GDMatPlotNative::set_antialiased(bool p_antialiased) {
+	_antialiased = p_antialiased;
+}
+
+bool GDMatPlotNative::get_antialiased() const {
+	return _antialiased;
 }
 
 Variant GDMatPlotNative::load_gnuplot(String p_path) {
@@ -126,7 +217,7 @@ Variant GDMatPlotNative::load_gnuplot(String p_path) {
 }
 
 Variant GDMatPlotNative::run_command(String p_cmd) {
-	if (!_library->is_initialized()) {
+	if (!_library->is_loaded()) {
 		GDMATPLOT_ERROR("Call 'load_gnuplot' first");
 
 		return ERR_NOT_INITIALIZED;
@@ -143,7 +234,7 @@ Variant GDMatPlotNative::run_command(String p_cmd) {
 }
 
 Variant GDMatPlotNative::set_dataframe(PackedFloat64Array frame, int p_column_count) {
-	if (!_library->is_initialized()) {
+	if (!_library->is_loaded()) {
 		GDMATPLOT_ERROR("Call 'load_gnuplot' first");
 
 		return ERR_NOT_INITIALIZED;
@@ -160,7 +251,7 @@ Variant GDMatPlotNative::set_dataframe(PackedFloat64Array frame, int p_column_co
 }
 
 Variant GDMatPlotNative::load_dataframe() {
-	if (!_library->is_initialized()) {
+	if (!_library->is_loaded()) {
 		GDMATPLOT_ERROR("Call 'load_gnuplot' first");
 
 		return ERR_NOT_INITIALIZED;
@@ -169,12 +260,50 @@ Variant GDMatPlotNative::load_dataframe() {
 	return _library->load_dataframe();
 }
 
+Variant GDMatPlotNative::start_renderer(Callable p_loop_func) {
+	stop_renderer();
+
+	_gnuplot_render_thread_func = memnew(GDMatPlotGNUPlotRenderer);
+	if (_gnuplot_render_thread_func == nullptr)
+		return ERR_GENERAL;
+
+	_gnuplot_render_thread_func->set_loop_func(p_loop_func);
+	Callable c(_gnuplot_render_thread_func);
+	Error error = _gnuplot_render_thread->start(c);
+	if (error) {
+		GDMATPLOT_ERROR("Could not start GNUPlot renderer, exits with code %d", error);
+
+		return ERR_GNUPLOT_RENDERER_START;
+	}
+
+	return 0;
+}
+
+void GDMatPlotNative::set_rendering_period(int64_t p_period) {
+	if (_gnuplot_render_thread_func == nullptr)
+		return;
+
+	_gnuplot_render_thread_func->set_loop_period(p_period);
+}
+
+void GDMatPlotNative::stop_renderer() {
+	if (_gnuplot_render_thread_func == nullptr)
+		return;
+
+	_gnuplot_render_thread_func->terminate();
+	if (_gnuplot_render_thread->is_alive()) {
+		_gnuplot_render_thread->wait_to_finish();
+	}
+
+	_gnuplot_render_thread_func = nullptr;
+}
+
 Variant GDMatPlotNative::get_version() {
 	return GDMATPLOT_VERSION;
 }
 
 Variant GDMatPlotNative::get_gnuplot_version() {
-	if (!_library->is_initialized()) {
+	if (!_library->is_loaded()) {
 		GDMATPLOT_ERROR("Call 'load_gnuplot' first");
 
 		return String();
@@ -183,6 +312,334 @@ Variant GDMatPlotNative::get_gnuplot_version() {
 	return _library->get_gnuplot_version();
 }
 
+/*
+ ********************************* GNUPlot renderer *******************************
+ */
+
+void GDMatPlotGNUPlotRenderer::call(const Variant **p_arguments, int p_argcount, Variant &r_return_value,
+									GDExtensionCallError &r_call_error) const {
+	while (!_is_terminated()) {
+		uint64_t loop_start = Time::get_singleton()->get_ticks_msec();
+
+		while (!_sem->try_wait()) {
+			if (_is_terminated())
+				goto end_of_thread;
+
+			OS::get_singleton()->delay_msec(GNUPLOT_RENDERER_BASE_DELAY);
+		}
+
+		_loop_func.call_deferred();
+
+		int64_t dt = Time::get_singleton()->get_ticks_msec() - loop_start;
+		int64_t loop_period = get_loop_period();
+		while (dt < loop_period && !_is_terminated()) {
+			int64_t delay = loop_period - dt;
+			if (delay > GNUPLOT_RENDERER_BASE_DELAY)
+				delay = GNUPLOT_RENDERER_BASE_DELAY;
+			OS::get_singleton()->delay_msec(delay);
+			dt = Time::get_singleton()->get_ticks_msec() - loop_start;
+			loop_period = get_loop_period();
+		}
+	}
+
+end_of_thread:
+
+	r_call_error.error = GDEXTENSION_CALL_OK;
+}
+
+/*
+ ********************************* EncodedDrawing *******************************
+ */
+
+GDMatPlotNative::EncodedDrawing::EncodedDrawing() {
+	draw_command.resize(16);
+}
+
+GDMatPlotNative::EncodedDrawing::EncodedDrawing(const EncodedDrawing &other) {
+	if (this == &other)
+		return;
+
+	draw_command = other.draw_command;
+	path_points = other.path_points;
+	path_color = other.path_color;
+	path_width = other.path_width;
+	_size = other._size;
+	type = other.type;
+}
+
+void GDMatPlotNative::EncodedDrawing::operator =(const EncodedDrawing &other) {
+	if (this == &other)
+		return;
+
+	draw_command = other.draw_command;
+	path_points = other.path_points;
+	path_color = other.path_color;
+	path_width = other.path_width;
+	_size = other._size;
+	type = other.type;
+}
+
+void GDMatPlotNative::EncodedDrawing::resize() {
+	PackedByteArray increment;
+	increment.resize(draw_command.size());
+	draw_command.append_array(increment);
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_color(const Color &color) {
+	unsigned int tmp = color.to_rgba32();
+	encode(tmp);
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_draw_rect(float x, float y, float width,
+													   float height, const Color &c) {
+	encode(x);
+	encode(y);
+	encode(width);
+	encode(height);
+	encode_color(c);
+	type = RECT;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_draw_rect(GDMatPlotNative *self) {
+	const float *tmpf = (const float *)(draw_command.ptr());
+	float x = *tmpf++;
+	float y = *tmpf++;
+	float width = *tmpf++;
+	float height = *tmpf++;
+	const unsigned int *tmpi = (const unsigned int *)(tmpf);
+	Rect2 rect(x, y, width, height);
+	self->draw_rect(rect, Color::hex(*tmpi));
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_draw_line(float x1, float y1, float x2, float y2,
+													   float width, const Color &c) {
+	encode(x1);
+	encode(y1);
+	encode(x2);
+	encode(y2);
+	encode(width);
+	encode_color(c);
+	type = LINE;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_draw_line(GDMatPlotNative *self) {
+	const float *tmpf = (const float *)(draw_command.ptr());
+	float x1 = *tmpf++;
+	float y1 = *tmpf++;
+	float x2 = *tmpf++;
+	float y2 = *tmpf++;
+	float width = *tmpf++;
+	const unsigned int *tmpi = (const unsigned int *)(tmpf);
+	Vector2 from(x1, y1);
+	Vector2 to(x2, y2);
+	self->draw_line(from, to, Color::hex(*tmpi), width, self->get_antialiased());
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_put_text(float x, float y, float text_angle, int font_size,
+													  int justify, const Color &c, const String &s) {
+	PackedByteArray str_buf = s.to_utf8_buffer();
+	draw_command.resize(4);
+	draw_command.encode_u32(0, str_buf.size());
+	draw_command.append_array(str_buf);
+	_size = draw_command.size();
+	encode(x);
+	encode(y);
+	encode(text_angle);
+	encode(font_size);
+	encode(justify);
+	encode_color(c);
+	type = TEXT;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_put_text(GDMatPlotNative *self) {
+	unsigned int size = draw_command.decode_u32(0);
+	const unsigned int offset = sizeof(size);
+	String str = draw_command.slice(offset, offset + size).get_string_from_utf8();
+	const float *tmpf = (const float *)(draw_command.ptr() + size + offset);
+	float x = *tmpf++;
+	float y = *tmpf++;
+	float text_angle = *tmpf++;
+	const int *tmp = (const int *)(tmpf);
+	int font_size = *tmp++;
+	int justify = *tmp++;
+	const unsigned int *tmpi = (const unsigned int *)(tmp);
+	unsigned int color = *tmpi++;
+
+	Ref<Theme> theme = ThemeDB::get_singleton()->get_default_theme();
+	if (!theme.is_valid())
+		return;
+
+	Ref<Font> font = theme->get_default_font();
+	if (!font.is_valid())
+		return;
+
+	constexpr float width = -1;
+	constexpr int max_lines = -1;
+	const BitField<TextServer::LineBreakFlag> brk_flags = 3;
+	const BitField<TextServer::JustificationFlag> justification_flags = 3;
+	constexpr TextServer::Direction direction = (TextServer::Direction) 0;
+	constexpr TextServer::Orientation orientation = (TextServer::Orientation) 0;
+	Vector2 pos(x, y);
+	Vector2 str_size = font->get_multiline_string_size(str, (HorizontalAlignment)justify,
+														width, font_size, max_lines, brk_flags,
+														justification_flags, direction, orientation);
+
+	if (justify == HORIZONTAL_ALIGNMENT_CENTER)
+		str_size.x /= 2.0;
+	else if (justify == HORIZONTAL_ALIGNMENT_LEFT)
+		str_size.x = 0.0;
+
+	pos.x -= str_size.x;
+
+	self->draw_set_transform(pos, text_angle);
+	self->draw_multiline_string(font, Vector2(), str, (HorizontalAlignment)justify, width,
+								font_size, max_lines, Color::hex(color), brk_flags,
+								justification_flags, direction, orientation);
+	self->draw_set_transform(Vector2());
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_point(float x, float y, float size, const Color &c) {
+	encode(x);
+	encode(y);
+	encode(size);
+	encode_color(c);
+	type = POINT;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_point(GDMatPlotNative *self) {
+	const float *tmpf = (const float *)(draw_command.ptr());
+	float x = *tmpf++;
+	float y = *tmpf++;
+	float size = *tmpf++;
+	const unsigned int *tmpi = (const unsigned int *)(tmpf);
+	Vector2 pos(x, y);
+	self->draw_circle(pos, size, Color::hex(*tmpi));
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_filled_polygon(int point_count, const int *corners,
+															const Color &c) {
+	encode_color(c);
+	encode(point_count);
+
+	for (int i = 0; i < point_count; ++i) {
+		int j = 2 * i;
+		encode(corners[j]);
+		encode(corners[j+1]);
+	}
+
+	type = POLYGON;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_filled_polygon(GDMatPlotNative *self) {
+	const unsigned int *tmp_color = (const unsigned int *)(draw_command.ptr());
+	unsigned int color = *tmp_color++;
+	const int *tmpi = (const int *)(tmp_color);
+
+	int point_count = *tmpi++;
+	PackedVector2Array points;
+	PackedColorArray colors;
+	points.resize(point_count);
+	colors.resize(point_count);
+
+	for (int i = 0; i < point_count; ++i) {
+		int x = *tmpi++;
+		int y = *tmpi++;
+		points[i] = Vector2(self->_bp.X(x), self->_bp.Y(y));
+		colors[i] = Color::hex(color);
+	}
+
+	if (Geometry2D::get_singleton()->triangulate_polygon(points).is_empty())
+		return;
+
+	self->draw_polygon(points, colors);
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_init(float x, float y, float width,
+												  float height, const Color &c) {
+	encode_draw_rect(x, y, width, height, c);
+	type = INIT;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_init(GDMatPlotNative *self) {
+	decode_draw_rect(self);
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_vector(float x1, float y1, float x2, float y2,
+													float width, const Color &c) {
+	encode_draw_line(x1, y1, x2, y2, width, c);
+	type = VECTOR;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_vector(GDMatPlotNative *self) {
+	decode_draw_line(self);
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_fillbox(float x, float y, float width,
+													 float height, const Color &c) {
+	encode_draw_rect(x, y, width, height, c);
+	type = FILLBOX;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_fillbox(GDMatPlotNative *self) {
+	decode_draw_rect(self);
+}
+
+void GDMatPlotNative::EncodedDrawing::encode_path_is_open(PackedVector2Array &points, unsigned int is_open,
+														  float width, const Color &c) {
+	encode(is_open);
+	encode_color(c);
+	encode(width);
+	path_points = points;
+	type = PATH_OPEN;
+}
+
+void GDMatPlotNative::EncodedDrawing::decode_path_is_open(GDMatPlotNative *self) {
+	const unsigned int *tmpi = (const unsigned int *)(draw_command.ptr());
+	unsigned int is_open = *tmpi++;
+	unsigned int color = *tmpi++;
+	const float *tmpf = (float *)tmpi;
+	float width = *tmpf++;
+
+	self->draw_polyline(path_points, Color::hex(color), width, self->get_antialiased());
+}
+
+void GDMatPlotNative::EncodedDrawing::decode(GDMatPlotNative *self) {
+	switch (type) {
+	case INIT:
+		decode_init(self);
+		break;
+	case VECTOR:
+		decode_vector(self);
+		break;
+	case FILLBOX:
+		decode_fillbox(self);
+		break;
+	case POINT:
+		decode_point(self);
+		break;
+	case POLYGON:
+		decode_filled_polygon(self);
+		break;
+	case RECT:
+		decode_draw_rect(self);
+		break;
+	case LINE:
+		decode_draw_line(self);
+		break;
+	case TEXT:
+		decode_put_text(self);
+		break;
+	case PATH_OPEN:
+		decode_path_is_open(self);
+	default:
+		break;
+	}
+}
+
+/*
+ ******************** GNUPlot GDMP Terminal methods endpoints ********************
+ */
+
 void GDMatPlotNative::options() {
 	GDMP_MSG("## Called 'options'", 0);
 }
@@ -190,8 +647,14 @@ void GDMatPlotNative::options() {
 void GDMatPlotNative::init() {
 	GDMP_MSG("## Called 'init'", 0);
 
-	Rect2 rect(0, 0, _bp.xsize, _bp.ysize);
-	draw_rect(rect, Color::hex((_bp.background << 8) | 255));
+	if (_get_stage() != GNUPLOT_STAGE)
+		return;
+
+	int alpha = Math::round((float)(255.0 * _background_alpha));
+	alpha = alpha > 255 ? 255 : (alpha < 0 ? 0 : alpha);
+	EncodedDrawing fd;
+	fd.encode_init(0, 0, _bp.xsize, _bp.ysize, Color::hex((_bp.background << 8) | alpha));
+	_encoded_drawings.push_back(fd);
 }
 
 void GDMatPlotNative::reset() {
@@ -215,17 +678,22 @@ void GDMatPlotNative::graphics() {
 void GDMatPlotNative::move(unsigned int x, unsigned int y) {
 	_bp.prev_point.x = _bp.X(x);
 	_bp.prev_point.y = _bp.Y(y);
+
+	_draw_path_points(false);
 }
 
 void GDMatPlotNative::vector(unsigned int x, unsigned int y) {
-	if (x != _bp.xlast || y != _bp.ylast) {
-		Vector2 from(_bp.xlast, _bp.ylast);
-		Vector2 to(_bp.X(x), _bp.Y(y));
-		double width = _bp.linewidth * _bp.linewidth_factor;
-		if (width < 1.0)
-			width = 1.0;
-		draw_line(from, to, _bp.get_line_color(), width, true);
-	}
+	if (_get_stage() != GNUPLOT_STAGE)
+		return;
+
+	double width = _bp.linewidth * _bp.linewidth_factor;
+	if (width < 1.0)
+		width = 1.0;
+
+	if (_path_points.size() == 0)
+		_path_points.append(Vector2(_bp.xlast, _bp.ylast));
+
+	_path_points.append(Vector2(_bp.X(x), _bp.Y(y)));
 }
 
 void GDMatPlotNative::linetype(int type) {
@@ -235,44 +703,18 @@ void GDMatPlotNative::linetype(int type) {
 void GDMatPlotNative::put_text(unsigned int x, unsigned int y, const char *str) {
 	GDMP_MSG("## Called 'put_text(%d, %d, %s)'", x, y, str);
 
-	Ref<Theme> theme = ThemeDB::get_singleton()->get_default_theme();
-	if (!theme.is_valid())
+	if (_get_stage() != GNUPLOT_STAGE)
 		return;
 
-	Ref<Font> font = theme->get_default_font();
-	if (!font.is_valid())
+	if (!str)
 		return;
 
 	String _str = str;
-
-	float _x = _bp.X(x);
-	float _y = _bp.Y(y);
-
-	float line_height = 0.0;
-	constexpr float width = -1;
-	constexpr int max_lines = -1;
-	const BitField<TextServer::LineBreakFlag> brk_flags = 3;
-	const BitField<TextServer::JustificationFlag> justification_flags = 3;
-	constexpr TextServer::Direction direction = (TextServer::Direction) 0;
-	constexpr TextServer::Orientation orientation = (TextServer::Orientation) 0;
 	int font_size = _bp.font.size * _bp.fontscale;
-	Vector2 pos(_x, _y);
-	Vector2 size = font->get_multiline_string_size(_str, (HorizontalAlignment)_bp.justify,
-													width, font_size, max_lines, brk_flags,
-													justification_flags, direction, orientation);
-
-	if (_bp.justify == HORIZONTAL_ALIGNMENT_CENTER)
-		size.x /= 2.0;
-	else if (_bp.justify == HORIZONTAL_ALIGNMENT_LEFT)
-		size.x = 0.0;
-
-	pos.x -= size.x;
-
-	draw_set_transform(pos, _bp.text_angle);
-	draw_multiline_string(font, Vector2(), _str, (HorizontalAlignment)_bp.justify, width,
-							font_size, max_lines, _bp.get_font_color(), brk_flags,
-							justification_flags, direction, orientation);
-	draw_set_transform(Vector2());
+	EncodedDrawing fd;
+	fd.encode_put_text(_bp.X(x), _bp.Y(y), _bp.text_angle, font_size, _bp.justify,
+						_bp.get_font_color(), _str);
+	_encoded_drawings.push_back(fd);
 }
 
 int GDMatPlotNative::text_angle(float angle) {
@@ -288,8 +730,12 @@ int GDMatPlotNative::justify_text(int type) {
 }
 
 void GDMatPlotNative::point(unsigned int x, unsigned int y, int val) {
-	Vector2 pos(_bp.X(x), _bp.Y(y));
-	draw_circle(pos, _bp.term_pointsize, _bp.get_color());
+	if (_get_stage() != GNUPLOT_STAGE)
+		return;
+
+	EncodedDrawing fd;
+	fd.encode_point(_bp.X(x), _bp.Y(y), _bp.term_pointsize, _bp.get_color());
+	_encoded_drawings.push_back(fd);
 }
 
 void GDMatPlotNative::arrow(unsigned int x, unsigned int y, unsigned int z,
@@ -325,8 +771,14 @@ void GDMatPlotNative::resume() {
 void GDMatPlotNative::fillbox(int style, unsigned int x1, unsigned int y1,
 				unsigned int width, unsigned int height) {
 	GDMP_MSG("## Called 'fillbox(%d, %u, %u, %u, %u)'", style, x1, y1, width, height);
-	Rect2 rect(_bp.X(x1), _bp.Y(y1 + height), _bp.X(width), _bp.X(height));
-	draw_rect(rect, _bp.get_fill_color(style));
+
+	if (_get_stage() != GNUPLOT_STAGE)
+		return;
+
+	EncodedDrawing fd;
+	fd.encode_fillbox(_bp.X(x1), _bp.Y(y1 + height), _bp.X(width), _bp.X(height),
+					  _bp.get_fill_color(style));
+	_encoded_drawings.push_back(fd);
 }
 
 void GDMatPlotNative::linewidth(double p_linewidth) {
@@ -351,25 +803,17 @@ void GDMatPlotNative::set_color(unsigned int color) {
 void GDMatPlotNative::filled_polygon(int point_count, void *corners, int style) {
 	GDMP_MSG("## Called 'filled_polygon(%d, %d)'", point_count, style);
 
+	if (_get_stage() != GNUPLOT_STAGE)
+		return;
+
 	if (point_count <= 0 || !corners)
 		return;
 
 	int *xy = (int *)corners;
-	PackedVector2Array points;
-	PackedColorArray colors;
-	points.resize(point_count);
-	colors.resize(point_count);
 
-	for (int i = 0; i < point_count; ++i) {
-		int j = 2 * i;
-		points[i] = Vector2(_bp.X(xy[j]), _bp.Y(xy[j+1]));
-		colors[i] = _bp.get_fill_color(style);
-	}
-
-	if (Geometry2D::get_singleton()->triangulate_polygon(points).is_empty())
-		return;
-
-	draw_polygon(points, colors);
+	EncodedDrawing fd;
+	fd.encode_filled_polygon(point_count, xy, _bp.get_fill_color(style));
+	_encoded_drawings.push_back(fd);
 }
 
 void GDMatPlotNative::image(unsigned int m, unsigned int n, void *imdata,
@@ -529,6 +973,11 @@ void GDMatPlotNative::set_group_is_open(unsigned char val) {
 void GDMatPlotNative::set_path_is_open(unsigned char val) {
 	GDMP_MSG("## Called 'path_is_open(%uc)'", val);
 	_bp.path_is_open = val;
+
+	if (val)
+		return;
+
+	_draw_path_points(val);
 }
 
 void GDMatPlotNative::set_fontscale(double val) {
@@ -549,7 +998,7 @@ void GDMatPlotNative::set_name(const char *val) {
 
 void GDMatPlotNative::set_linewidth_factor(double val) {
 	GDMP_MSG("## Called 'linewidth(%.02f)'", val);
-	_bp.linewidth_factor = 0.5 * val;
+	_bp.linewidth_factor = val;
 }
 
 void GDMatPlotNative::set_background(int val) {

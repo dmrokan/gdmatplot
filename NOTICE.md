@@ -3,6 +3,8 @@ Some files in the code base contain third-party code under different licenses.
 
 ### GNUPlot
 
+Website: [http://www.gnuplot.info](http://www.gnuplot.info)
+
 #### gnuplot License
 ```
 /*[

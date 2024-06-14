@@ -9,9 +9,8 @@ set ylabel 'y'
 #set tics out nomirror
 #set border 3 front linetype black linewidth 1.0 dashtype solid
 
-#set style line 1 linecolor rgb '#00ff00' linewidth 2 linetype 3 pointtype 2
-#set style line 2 linecolor rgb '#0000ff' linewidth 1 linetype 3 pointtype 8 ps 1.0
-#set style line 3 linecolor rgb '#ff0000' linewidth 1 linetype 3 pointtype 1
+set style line 1 linecolor rgb '#33ff66' linewidth 2
+set style line 3 linecolor rgb '#ff8833' linewidth 1
 #set style data linespoints
 
-plot 'df' using 1:3 with lines linestyle 1, 'df' using 2:3 with lines linestyle 1
+plot 'df' using 1:3 with lines linestyle 1, 'df' using 2:3 with lines linestyle 3

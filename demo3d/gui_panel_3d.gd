@@ -14,3 +14,6 @@ func _process(delta):
 
 func set_gnuplot_script_and_params(fn: String, inc: float, bounds: Array, redraw_period: float = -1.0):
 	$SubViewport/GDMatPlotNative.set_gnuplot_script_and_params(fn, inc, bounds, redraw_period)
+
+func enable_draw(enable: bool = true):
+	$SubViewport/GDMatPlotNative.enable_draw(enable)

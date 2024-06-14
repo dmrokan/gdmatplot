@@ -67,6 +67,7 @@ set key box vertical width 1 height 1 maxcols 1 spacing 0.7
 LABEL = "Text in a box"
 set obj 10 rect at 0.2,0.6 size char strlen(LABEL), char 1 fc rgb 'cyan'
 set label 10 LABEL at 0.2,0.6 front center
+
 set xrange [-0.1:1.1]
 set yrange [-0.1:.7]
 set trange [ 0.0:1.0]
