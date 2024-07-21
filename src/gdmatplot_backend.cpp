@@ -35,12 +35,7 @@ typedef godot::GDMatPlotNative GDMatPlot;
 
 using namespace godot;
 
-GDMatPlotBackendBase::GDMatPlotBackendBase() {
-	_gnuplot_interface = std::make_shared<::GDMatPlotGNUPlotInterface>();
-}
-
-GDMatPlotBackendBase::~GDMatPlotBackendBase() {
-	unload();
+GDMatPlotBackendBase::GDMatPlotBackendBase() : _gnuplot_interface(std::make_shared<::GDMatPlotGNUPlotInterface>()) {
 }
 
 int GDMatPlotBackendBase::init(GDMatPlotNative *mp_ptr) {

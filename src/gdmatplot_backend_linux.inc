@@ -118,17 +118,22 @@ failed:
 }
 
 int GDMatPlotBackend::unload() {
+	int result = 0;
+
 	if (_handle != nullptr) {
-		int result = dlclose(_handle);
+		result = dlclose(_handle);
 		_handle = nullptr;
 		set_status(result);
-		return result;
+	} else {
+		set_status(ERR_NOT_INITIALIZED);
+		result = ERR_NOT_INITIALIZED;
 	}
 
-	_is_loaded = false;
+	GDMatPlotBackendBase::unload();
 
-	set_status(ERR_NOT_INITIALIZED);
-	return ERR_NOT_INITIALIZED;
+	GDMATPLOT_DEBUG("gnuplot is unloaded with error code: %d", result);
+
+	return result;
 }
 
 int GDMatPlotBackend::init(GDMatPlotNative *mp_ptr) {

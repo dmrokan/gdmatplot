@@ -34,7 +34,7 @@ var dataframe: PackedFloat64Array = PackedFloat64Array()
 var lib_loaded: bool = false
 func _load_library():
 	var error = load_gnuplot()
-	if !error:
+	if not error:
 		lib_loaded = true
 		start_renderer(_draw_commands)
 
@@ -58,6 +58,9 @@ func set_gnuplot_script_and_params(fn: String, inc: float, bounds: Array, redraw
 	_redraw_period = redraw_period
 
 func enable_draw(enable: bool = true):
+	if not lib_loaded:
+		return
+
 	_disable_draw = not enable
 	if enable:
 		set_rendering_period(int(1e3 * _redraw_period))
