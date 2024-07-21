@@ -39,7 +39,7 @@ In this demo, similar test plots are embedded into 3D game world by using subvie
 
 ![Demo3D screenshot](docs/demo3d_screenshot.png?raw=true)
 
-[demo3d_screencast.webm](https://github.com/dmrokan/gdmatplot/assets/5034947/c8745b1c-b6ae-4959-bc93-946bba6f55fe)
+![Demo3D screencase](docs/demo3d_screencast.webm?raw=true)
 
 ## Classes
 ### GDMatPlotNative
