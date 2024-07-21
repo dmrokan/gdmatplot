@@ -39,7 +39,7 @@ In this demo, similar test plots are embedded into 3D game world by using subvie
 
 ![Demo3D screenshot](docs/demo3d_screenshot.png?raw=true)
 
-![Demo3D screencase](docs/demo3d_screencast.webm?raw=true)
+https://github.com/user-attachments/assets/0b9b067d-0e99-45da-b536-b9213b482bc7
 
 ## Classes
 ### GDMatPlotNative
@@ -50,8 +50,8 @@ Base class of GDMatPlot derived from Node2D.
 - `draw_plot()`: Overrides `Node2D` `_draw` method. See the example below for its usage.
 - `load_gnuplot(p_path: String = "user://libgnuplot.so")`: Loads GNUPlot shared library by using `p_path` as a temporary loading location. This function must be called initially, preferably in `_ready()` method. It returns `0` on success, a negative value on error. Note that, if there is already a file at `p_path`, it will be overwritten.
 
-| :warning: WARNING | This function creates 2MB sized a temporary file when called. It is better not to call it frequently. |
-|-------------------|-------------------------------------------------------------------------------------------------------|
+| :warning: WARNING | This function creates 2MB sized temporary file when called. It is better not to call it frequently. |
+|-------------------|-----------------------------------------------------------------------------------------------------|
 
 - `run_command(p_cmd: String)`: Redirects `p_cmd` to GNUPlot's command line parser.
 - `set_dataframe(p_data: PackedFloat64Array, p_column_count: int)`: Set dataframe to be parsed and plotted. `p_data` is assumed to be in row major format and its size must be divisible by `p_column_count`. Imitates GNUPlot's numeric dataframe loading from a text file.
