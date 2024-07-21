@@ -106,18 +106,21 @@ failed:
 }
 
 int GDMatPlotBackend::unload() {
+	int result = 0;
+
 	if (_handle != nullptr) {
-		int result = FreeLibrary(_handle);
+		result = FreeLibrary(_handle);
 		_handle = nullptr;
 		result = -1 * (!result);
 		set_status(result);
-		return result;
+	} else {
+		set_status(ERR_NOT_INITIALIZED);
+		result = ERR_NOT_INITIALIZED;
 	}
 
-	_is_loaded = false;
+	GDMatPlotBackendBase::unload();
 
-	set_status(ERR_NOT_INITIALIZED);
-	return ERR_NOT_INITIALIZED;
+	return result;
 }
 
 int GDMatPlotBackend::init(GDMatPlotNative *mp_ptr) {

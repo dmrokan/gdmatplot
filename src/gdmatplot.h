@@ -79,7 +79,6 @@ public:
 
 	~GDMatPlotGNUPlotRenderer() {
 		terminate();
-		_sem->post();
 		GDMATPLOT_DEBUG("## Deleted: GDMatPlotGNUPlotRenderer instance: %p", this);
 	}
 
@@ -128,6 +127,7 @@ public:
 	void terminate() {
 		MutexLock lock(**_lock);
 		_terminate = true;
+		_sem->post();
 	}
 
 	void set_loop_func(const Callable &c) {
@@ -168,8 +168,8 @@ protected:
 	};
 
 	struct BackendParams {
-		static constexpr unsigned int DEFAULT_COLOR = 0x000000FFu;
-		static constexpr float GDMP_SCALE = 0.01;
+		static constexpr unsigned int DEFAULT_COLOR{ 0x000000FFu };
+		static constexpr float GDMP_SCALE{ 0.01 };
 
 		enum colortype {
 			TC_DEFAULT = 0, /* Use default color, set separately */
@@ -201,6 +201,9 @@ protected:
 			double width{ 2.0 };
 			unsigned int color{ DEFAULT_COLOR };
 		};
+
+		BackendParams() : patterncolor{} {
+		}
 
 		Color get_color() {
 			switch (color_mode) {
@@ -262,18 +265,22 @@ protected:
 			return Color::hex(DEFAULT_COLOR);
 		}
 
+		// cppcheck-suppress functionStatic
 		float X(float x) {
 			return x * GDMP_SCALE;
 		}
 
+		// cppcheck-suppress functionStatic
 		float Y(float y) {
 			return ysize - y * GDMP_SCALE;
 		}
 
+		// cppcheck-suppress functionStatic
 		int Xi(float x) {
 			return (int)(x * GDMP_SCALE);
 		}
 
+		// cppcheck-suppress functionStatic
 		int Yi(float y) {
 			return (int)(ysize - y * GDMP_SCALE);
 		}
@@ -378,13 +385,13 @@ protected:
 		void decode_vector(GDMatPlotNative *self);
 		void encode_fillbox(float x, float y, float width, float height, const Color &c);
 		void decode_fillbox(GDMatPlotNative *self);
-		void encode_path_is_open(PackedVector2Array &points, unsigned int is_open,
-				float width, const Color &c);
+		void encode_path_is_open(const PackedVector2Array &points, unsigned int is_open,
+								 float width, const Color &c);
 		void decode_path_is_open(GDMatPlotNative *self);
 		void decode(GDMatPlotNative *self);
 	};
 
-	BackendParams _bp;
+	BackendParams _bp{};
 	PackedVector2Array _path_points;
 	std::vector<EncodedDrawing> _encoded_drawings;
 	GDMatPlotGNUPlotRenderer *_gnuplot_render_thread_func{};

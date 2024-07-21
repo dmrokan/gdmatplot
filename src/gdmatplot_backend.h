@@ -93,7 +93,6 @@ protected:
 
 public:
 	GDMatPlotBackendBase();
-	virtual ~GDMatPlotBackendBase();
 
 	void set_path(String &p_path) {
 		_path = p_path.ascii();
@@ -172,10 +171,6 @@ protected:
 	gdmp_lib_handle_t _handle{};
 
 public:
-	~GDMatPlotBackendLinux() {
-		unload();
-	}
-
 	int load(String &p_path) override;
 	int unload() override;
 	int init(GDMatPlotNative *mp_ptr) override;
@@ -195,10 +190,6 @@ protected:
 	gdmp_lib_handle_t _handle{};
 
 public:
-	~GDMatPlotBackendWindows() {
-		unload();
-	}
-
 	int load(String &p_path) override;
 	int unload() override;
 	int init(GDMatPlotNative *mp_ptr) override;

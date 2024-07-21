@@ -27,6 +27,7 @@
 
 #include <cstdlib>
 #include <mutex>
+#include <limits>
 
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/dir_access.hpp>
@@ -48,6 +49,10 @@ static constexpr int GNUPLOT_RENDERER_DEFAULT_LOOP_PERIOD = 1000;
 static std::mutex _load_library_lock;
 
 void GDMatPlotNative::_bind_methods() {
+	// Floats must have 32-bit width for encoding/decoding of draw commands.
+	// Otherwise, build will fail. Platform compatibility is left as future work.
+	static_assert(std::numeric_limits<float>::is_iec559);
+
 	ClassDB::bind_method(D_METHOD("draw_plot"), &GDMatPlotNative::_draw);
 	ClassDB::bind_method(D_METHOD("load_gnuplot", "p_path"), &GDMatPlotNative::load_gnuplot,
 						 DEFVAL(String(GDMATPLOT_DEFAULT_LIBGNUPLOT_PATH)));
@@ -80,11 +85,11 @@ void GDMatPlotNative::_bind_methods() {
 GDMatPlotNative::GDMatPlotNative() {
 	_library.instantiate();
 	_get_set_stage_lock.instantiate();
-	_gnuplot_render_thread.instantiate();
 }
 
 GDMatPlotNative::~GDMatPlotNative() {
 	stop_renderer();
+	_library->unload();
 }
 
 void GDMatPlotNative::_set_stage(int p_stage) {
@@ -205,15 +210,20 @@ Variant GDMatPlotNative::load_gnuplot(String p_path) {
 #endif
 
 	tmp_path = fh->get_path_absolute();
-	int result = _library->load(tmp_path);
+	int error = _library->load(tmp_path);
+	if (!error) {
+		error = _library->init(this);
+	}
 
-	result = _library->init(this);
+	int error_tmp = DirAccess::remove_absolute(tmp_path);
+	if (error_tmp == ERR_UNAVAILABLE) {
+		if (error)
+			return error;
 
-	int error = DirAccess::remove_absolute(tmp_path);
-	if (error == ERR_UNAVAILABLE)
 		return ERR_LIBGNUPLOT_NOT_DELETED;
+	}
 
-	return result;
+	return error;
 }
 
 Variant GDMatPlotNative::run_command(String p_cmd) {
@@ -263,12 +273,15 @@ Variant GDMatPlotNative::load_dataframe() {
 Variant GDMatPlotNative::start_renderer(Callable p_loop_func) {
 	stop_renderer();
 
+	// It is automatically freed on thread cleanup.
 	_gnuplot_render_thread_func = memnew(GDMatPlotGNUPlotRenderer);
 	if (_gnuplot_render_thread_func == nullptr)
 		return ERR_GENERAL;
 
 	_gnuplot_render_thread_func->set_loop_func(p_loop_func);
 	Callable c(_gnuplot_render_thread_func);
+
+	_gnuplot_render_thread.instantiate();
 	Error error = _gnuplot_render_thread->start(c);
 	if (error) {
 		GDMATPLOT_ERROR("Could not start GNUPlot renderer, exits with code %d", error);
@@ -295,6 +308,7 @@ void GDMatPlotNative::stop_renderer() {
 		_gnuplot_render_thread->wait_to_finish();
 	}
 
+	_gnuplot_render_thread.unref();
 	_gnuplot_render_thread_func = nullptr;
 }
 
@@ -406,7 +420,8 @@ void GDMatPlotNative::EncodedDrawing::decode_draw_rect(GDMatPlotNative *self) {
 	float y = *tmpf++;
 	float width = *tmpf++;
 	float height = *tmpf++;
-	const unsigned int *tmpi = (const unsigned int *)(tmpf);
+	// cppcheck-suppress invalidPointerCast
+	const uint32_t *tmpi = (const uint32_t *)(tmpf);
 	Rect2 rect(x, y, width, height);
 	self->draw_rect(rect, Color::hex(*tmpi));
 }
@@ -429,7 +444,8 @@ void GDMatPlotNative::EncodedDrawing::decode_draw_line(GDMatPlotNative *self) {
 	float x2 = *tmpf++;
 	float y2 = *tmpf++;
 	float width = *tmpf++;
-	const unsigned int *tmpi = (const unsigned int *)(tmpf);
+	// cppcheck-suppress invalidPointerCast
+	const uint32_t *tmpi = (const uint32_t *)(tmpf);
 	Vector2 from(x1, y1);
 	Vector2 to(x2, y2);
 	self->draw_line(from, to, Color::hex(*tmpi), width, self->get_antialiased());
@@ -458,12 +474,13 @@ void GDMatPlotNative::EncodedDrawing::decode_put_text(GDMatPlotNative *self) {
 	const float *tmpf = (const float *)(draw_command.ptr() + size + offset);
 	float x = *tmpf++;
 	float y = *tmpf++;
-	float text_angle = *tmpf++;
-	const int *tmp = (const int *)(tmpf);
+	float text_angle_ = *tmpf++;
+	// cppcheck-suppress invalidPointerCast
+	const int32_t *tmp = (const int32_t *)(tmpf);
 	int font_size = *tmp++;
 	int justify = *tmp++;
-	const unsigned int *tmpi = (const unsigned int *)(tmp);
-	unsigned int color = *tmpi++;
+	const uint32_t *tmpi = (const uint32_t *)(tmp);
+	uint32_t color = *tmpi++;
 
 	Ref<Theme> theme = ThemeDB::get_singleton()->get_default_theme();
 	if (!theme.is_valid())
@@ -491,7 +508,7 @@ void GDMatPlotNative::EncodedDrawing::decode_put_text(GDMatPlotNative *self) {
 
 	pos.x -= str_size.x;
 
-	self->draw_set_transform(pos, text_angle);
+	self->draw_set_transform(pos, text_angle_);
 	self->draw_multiline_string(font, Vector2(), str, (HorizontalAlignment)justify, width,
 								font_size, max_lines, Color::hex(color), brk_flags,
 								justification_flags, direction, orientation);
@@ -511,7 +528,8 @@ void GDMatPlotNative::EncodedDrawing::decode_point(GDMatPlotNative *self) {
 	float x = *tmpf++;
 	float y = *tmpf++;
 	float size = *tmpf++;
-	const unsigned int *tmpi = (const unsigned int *)(tmpf);
+	// cppcheck-suppress invalidPointerCast
+	const uint32_t *tmpi = (const uint32_t *)(tmpf);
 	Vector2 pos(x, y);
 	self->draw_circle(pos, size, Color::hex(*tmpi));
 }
@@ -531,9 +549,9 @@ void GDMatPlotNative::EncodedDrawing::encode_filled_polygon(int point_count, con
 }
 
 void GDMatPlotNative::EncodedDrawing::decode_filled_polygon(GDMatPlotNative *self) {
-	const unsigned int *tmp_color = (const unsigned int *)(draw_command.ptr());
-	unsigned int color = *tmp_color++;
-	const int *tmpi = (const int *)(tmp_color);
+	const uint32_t *tmp_color = (const uint32_t *)(draw_command.ptr());
+	uint32_t color = *tmp_color++;
+	const int32_t *tmpi = (const int32_t *)(tmp_color);
 
 	int point_count = *tmpi++;
 	PackedVector2Array points;
@@ -584,7 +602,7 @@ void GDMatPlotNative::EncodedDrawing::decode_fillbox(GDMatPlotNative *self) {
 	decode_draw_rect(self);
 }
 
-void GDMatPlotNative::EncodedDrawing::encode_path_is_open(PackedVector2Array &points, unsigned int is_open,
+void GDMatPlotNative::EncodedDrawing::encode_path_is_open(const PackedVector2Array &points, unsigned int is_open,
 														  float width, const Color &c) {
 	encode(is_open);
 	encode_color(c);
@@ -594,9 +612,11 @@ void GDMatPlotNative::EncodedDrawing::encode_path_is_open(PackedVector2Array &po
 }
 
 void GDMatPlotNative::EncodedDrawing::decode_path_is_open(GDMatPlotNative *self) {
-	const unsigned int *tmpi = (const unsigned int *)(draw_command.ptr());
-	unsigned int is_open = *tmpi++;
-	unsigned int color = *tmpi++;
+	const uint32_t *tmpi = (const uint32_t *)(draw_command.ptr());
+	// cppcheck-suppress unreadVariable
+	uint32_t is_open = *tmpi++;
+	uint32_t color = *tmpi++;
+	// cppcheck-suppress invalidPointerCast
 	const float *tmpf = (float *)tmpi;
 	float width = *tmpf++;
 
@@ -686,10 +706,6 @@ void GDMatPlotNative::vector(unsigned int x, unsigned int y) {
 	if (_get_stage() != GNUPLOT_STAGE)
 		return;
 
-	double width = _bp.linewidth * _bp.linewidth_factor;
-	if (width < 1.0)
-		width = 1.0;
-
 	if (_path_points.size() == 0)
 		_path_points.append(Vector2(_bp.xlast, _bp.ylast));
 
@@ -750,9 +766,9 @@ int GDMatPlotNative::set_font(const char *name, double size) {
 		_bp.font.name = name;
 		int64_t idx = _bp.font.name.find(",");
 		if (idx >= 0) {
-			int64_t size = _bp.font.name.substr(idx + 1).to_int();
-			if (size > 0)
-				_bp.font.size = size;
+			int64_t tmp = _bp.font.name.substr(idx + 1).to_int();
+			if (tmp > 0)
+				_bp.font.size = tmp;
 		}
 	}
 
@@ -809,7 +825,7 @@ void GDMatPlotNative::filled_polygon(int point_count, void *corners, int style) 
 	if (point_count <= 0 || !corners)
 		return;
 
-	int *xy = (int *)corners;
+	const int *xy = (int *)corners;
 
 	EncodedDrawing fd;
 	fd.encode_filled_polygon(point_count, xy, _bp.get_fill_color(style));
@@ -1009,8 +1025,6 @@ void GDMatPlotNative::set_background(int val) {
 void GDMatPlotNative::set_linecolor(const char *val) {
 	GDMP_MSG("## Called 'linecolor(%s)'", val);
 	if (val) {
-		unsigned int color = 0;
-
 		String name = val;
 		Color c;
 		PackedStringArray rgb_vals = name.split(",", false);
