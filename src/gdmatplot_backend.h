@@ -55,10 +55,106 @@ typedef int(GDMP_STDCALL *gdmatplot_set_gdmp_matplot_object_t)(void *);
 typedef void(GDMP_STDCALL *gdmatplot_set_gdmp_dataframe_t)(const double *, unsigned int, unsigned int);
 typedef int(GDMP_STDCALL *gdmatplot_gdmp_get_gnuplot_version_t)(char *, unsigned int);
 
-struct GDMatPlotGNUPlotInterface;
-
 namespace godot {
 class GDMatPlotNative;
+
+struct GDMatPlotMethods {
+	void (*options)(void *);
+	void (*init)(void *);
+	void (*reset)(void *);
+	void (*text)(void *);
+	int (*scale)(void *, double, double);
+	void (*graphics)(void *);
+	void (*move)(void *, unsigned int, unsigned int);
+	void (*vector)(void *, unsigned int, unsigned int);
+	void (*linetype)(void *, int);
+	void (*put_text)(void *, unsigned int, unsigned int, const char *);
+	int (*text_angle)(void *, float); /* Changed from int to double in version 5.5 */
+	int (*justify_text)(void *, int);
+	void (*point)(void *, unsigned int, unsigned int, int);
+	void (*arrow)(void *, unsigned int, unsigned int, unsigned int, unsigned int, int headstyle);
+	int (*set_font)(void *, const char *, double);
+	void (*pointsize)(void *, double); /* change pointsize */
+	void (*suspend)(void *); /* called after one plot of multiplot */
+	void (*resume)(void *); /* called before plots of multiplot */
+	void (*fillbox)(void *, int, unsigned int, unsigned int, unsigned int, unsigned int); /* clear in multiplot mode */
+	void (*linewidth)(void *, double linewidth);
+
+	int (*make_palette)(void *, void *palette);
+	void (*previous_palette)(void *);
+	void (*set_color)(void *, unsigned int);
+	void (*filled_polygon)(void *, int, void *, int);
+	void (*image)(void *, unsigned int, unsigned int, void *, void *, unsigned int);
+	void (*enhanced_open)(void *, char *fontname, double fontsize,
+			double base, char widthflag, char showflag,
+			int overprint);
+	void (*enhanced_flush)(void *);
+	void (*enhanced_writec)(void *, int c);
+	void (*layer)(void *, unsigned int);
+	void (*path)(void *, int p);
+	void (*hypertext)(void *, int type, const char *text);
+	void (*boxed_text)(void *, unsigned int, unsigned int, int);
+	void (*modify_plots)(void *, unsigned int operations, int plotno);
+	void (*dashtype)(void *, int type, void *custom_dash_pattern);
+
+	/* ======================================== */
+
+	void (*set_xmax)(void *, unsigned int);
+	void (*set_ymax)(void *, unsigned int);
+	void (*set_h_tic)(void *, unsigned int);
+	void (*set_v_tic)(void *, unsigned int);
+
+	void (*set_color_mode)(void *, unsigned char);
+	void (*set_linetype)(void *, int);
+	void (*set_dashpattern)(void *, const char *);
+
+	void (*set_h_char)(void *, unsigned int);
+	void (*set_v_char)(void *, unsigned int);
+
+	void (*set_gridline)(void *, unsigned int);
+	void (*set_hasgrid)(void *, unsigned int);
+	void (*set_plotno)(void *, unsigned int);
+
+	void (*set_fill_pattern)(void *, int);
+	void (*set_fill_pattern_index)(void *, unsigned int);
+	void (*set_rgb)(void *, unsigned int);
+	void (*set_patterncolor)(void *, unsigned int *);
+	void (*set_group_filled_is_open)(void *, unsigned char);
+	void (*set_in_textbox)(void *, unsigned char);
+	void (*set_xsize)(void *, unsigned int);
+	void (*set_ysize)(void *, unsigned int);
+	void (*set_xlast)(void *, unsigned int);
+	void (*set_ylast)(void *, unsigned int);
+	void (*set_linecap)(void *, int);
+	void (*set_group_is_open)(void *, unsigned char);
+	void (*set_path_is_open)(void *, unsigned char);
+
+	void (*set_fontscale)(void *, double);
+	void (*set_dashlength)(void *, double);
+	void (*set_name)(void *, const char *);
+	void (*set_linewidth_factor)(void *, double);
+	void (*set_background)(void *, int);
+
+	void (*set_linecolor)(void *, const char *);
+	void (*set_alpha)(void *, double);
+
+	void (*set_term_pointsize)(void *, double);
+	void (*set_stroke_width)(void *, double);
+
+	void (*set_pen)(void *, unsigned int, unsigned int, double);
+
+	/* ======================================== */
+
+	double tscale;
+	int flags;
+
+	GDMatPlotMethods();
+};
+
+struct GDMatPlotGNUPlotInterface {
+	GDMatPlotMethods methods;
+	GDMatPlotNative *self;
+};
 
 class GDMatPlotBackendBase : public RefCounted {
 	GDCLASS(GDMatPlotBackendBase, RefCounted)
@@ -76,7 +172,7 @@ protected:
 	PackedFloat64Array _dataframe;
 	CharString _path;
 	GDMatPlotNative *_mp_ptr{};
-	std::shared_ptr<::GDMatPlotGNUPlotInterface> _gnuplot_interface{};
+	GDMatPlotGNUPlotInterface _gnuplot_interface;
 
 	gdmatplot_gdmp_init_t _gdmp_init{};
 	gdmatplot_set_gdmp_input_line_t _set_gdmp_input_line{};

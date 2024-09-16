@@ -70,10 +70,5 @@ func _draw_commands():
 		if _figure_size.x > 640 or _figure_size.x < 426:
 			_figure_size_inc *= -1
 
-		queue_redraw()
-
-func _draw():
-	draw_plot()
-
 func _process(delta):
-	pass
+	queue_redraw()

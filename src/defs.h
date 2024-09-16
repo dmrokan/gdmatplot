@@ -29,6 +29,8 @@
 #include <cstdint>
 #include <cstdio>
 
+#define GDMATPLOT_MEMTEST_BUILD_DISABLED
+
 #define GDMATPLOT_SET_VERSION(a, b, c) (a << 20 | b << 10 | c)
 
 static constexpr uint32_t GDMATPLOT_VERSION = GDMATPLOT_SET_VERSION(0, 2, 1);

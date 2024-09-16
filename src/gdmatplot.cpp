@@ -25,7 +25,6 @@
 
 #include "gdmatplot.h"
 
-#include <cstdlib>
 #include <mutex>
 #include <limits>
 
@@ -84,7 +83,7 @@ void GDMatPlotNative::_bind_methods() {
 
 GDMatPlotNative::GDMatPlotNative() {
 	_library.instantiate();
-	_get_set_stage_lock.instantiate();
+	_process_drawings_lock.instantiate();
 }
 
 GDMatPlotNative::~GDMatPlotNative() {
@@ -92,32 +91,16 @@ GDMatPlotNative::~GDMatPlotNative() {
 	_library->unload();
 }
 
-void GDMatPlotNative::_set_stage(int p_stage) {
-	MutexLock lock(**_get_set_stage_lock);
-	_stage = p_stage;
-}
-
-int GDMatPlotNative::_get_stage() {
-	MutexLock lock(**_get_set_stage_lock);
-	return _stage;
-}
-
 void GDMatPlotNative::_draw_plot() {
-	_set_stage(GODOT_STAGE);
+	// NOTE: Other acquirer is GDMatPlotGNUPlotRenderer::call()
+	MutexLock lock(**_process_drawings_lock);
 
-	if (_encoded_drawings.size() > 0) {
-		for (auto iter = _encoded_drawings.begin(); iter != _encoded_drawings.end(); ++iter) {
+	if (_drawings_to_decode.size() > 0) {
+		for (auto iter = _drawings_to_decode.begin(); iter != _drawings_to_decode.end(); ++iter) {
 			EncodedDrawing &fd = *iter;
 			fd.decode(this);
 		}
-
-		_encoded_drawings.clear();
 	}
-
-	_set_stage(GNUPLOT_STAGE);
-
-	if (_gnuplot_render_thread_func != nullptr)
-		_gnuplot_render_thread_func->trigger_render();
 }
 
 void GDMatPlotNative::_draw() {
@@ -273,8 +256,8 @@ Variant GDMatPlotNative::load_dataframe() {
 Variant GDMatPlotNative::start_renderer(Callable p_loop_func) {
 	stop_renderer();
 
-	// It is automatically freed on thread cleanup.
-	_gnuplot_render_thread_func = memnew(GDMatPlotGNUPlotRenderer);
+	// NOTE: It is automatically freed on thread cleanup.
+	_gnuplot_render_thread_func = memnew(GDMatPlotGNUPlotRenderer(this));
 	if (_gnuplot_render_thread_func == nullptr)
 		return ERR_GENERAL;
 
@@ -335,14 +318,20 @@ void GDMatPlotGNUPlotRenderer::call(const Variant **p_arguments, int p_argcount,
 	while (!_is_terminated()) {
 		uint64_t loop_start = Time::get_singleton()->get_ticks_msec();
 
-		while (!_sem->try_wait()) {
-			if (_is_terminated())
-				goto end_of_thread;
+		if (_self != nullptr) {
+			_loop_func.call();
 
-			OS::get_singleton()->delay_msec(GNUPLOT_RENDERER_BASE_DELAY);
+			// NOTE: Other acquirer is GDMatPlot::_draw_plot()
+			MutexLock lock(**_self->_process_drawings_lock);
+#ifdef GDMATPLOT_MEMTEST_BUILD
+			OS::get_singleton()->delay_msec(1000);
+#endif
+			_self->_drawings_to_decode.swap(_self->_encoded_drawings);
+		} else {
+			GDMATPLOT_ERROR("GDMatPlotNative reference is null. GNUPlot renderer thread exiting...");
+			r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
+			return;
 		}
-
-		_loop_func.call_deferred();
 
 		int64_t dt = Time::get_singleton()->get_ticks_msec() - loop_start;
 		int64_t loop_period = get_loop_period();
@@ -356,8 +345,6 @@ void GDMatPlotGNUPlotRenderer::call(const Variant **p_arguments, int p_argcount,
 		}
 	}
 
-end_of_thread:
-
 	r_call_error.error = GDEXTENSION_CALL_OK;
 }
 
@@ -370,6 +357,14 @@ GDMatPlotNative::EncodedDrawing::EncodedDrawing() {
 }
 
 GDMatPlotNative::EncodedDrawing::EncodedDrawing(const EncodedDrawing &other) {
+	copy(other);
+}
+
+void GDMatPlotNative::EncodedDrawing::operator=(const EncodedDrawing &other) {
+	copy(other);
+}
+
+void GDMatPlotNative::EncodedDrawing::copy(const EncodedDrawing &other) {
 	if (this == &other)
 		return;
 
@@ -381,16 +376,24 @@ GDMatPlotNative::EncodedDrawing::EncodedDrawing(const EncodedDrawing &other) {
 	type = other.type;
 }
 
-void GDMatPlotNative::EncodedDrawing::operator =(const EncodedDrawing &other) {
+void GDMatPlotNative::EncodedDrawingVector::swap(EncodedDrawingVector &other) {
 	if (this == &other)
 		return;
 
-	draw_command = other.draw_command;
-	path_points = other.path_points;
-	path_color = other.path_color;
-	path_width = other.path_width;
-	_size = other._size;
-	type = other.type;
+	drawings.clear();
+	drawings = std::vector<EncodedDrawing>();
+	drawings.swap(other.drawings);
+}
+
+void GDMatPlotNative::EncodedDrawingVector::copy(const EncodedDrawingVector &other) {
+	if (this == &other)
+		return;
+
+	drawings.clear();
+
+	for (auto it = other.drawings.begin(); it != other.drawings.end(); ++it) {
+		push_back(*it);
+	}
 }
 
 void GDMatPlotNative::EncodedDrawing::resize() {
@@ -667,9 +670,6 @@ void GDMatPlotNative::options() {
 void GDMatPlotNative::init() {
 	GDMP_MSG("## Called 'init'", 0);
 
-	if (_get_stage() != GNUPLOT_STAGE)
-		return;
-
 	int alpha = Math::round((float)(255.0 * _background_alpha));
 	alpha = alpha > 255 ? 255 : (alpha < 0 ? 0 : alpha);
 	EncodedDrawing fd;
@@ -703,9 +703,6 @@ void GDMatPlotNative::move(unsigned int x, unsigned int y) {
 }
 
 void GDMatPlotNative::vector(unsigned int x, unsigned int y) {
-	if (_get_stage() != GNUPLOT_STAGE)
-		return;
-
 	if (_path_points.size() == 0)
 		_path_points.append(Vector2(_bp.xlast, _bp.ylast));
 
@@ -718,9 +715,6 @@ void GDMatPlotNative::linetype(int type) {
 
 void GDMatPlotNative::put_text(unsigned int x, unsigned int y, const char *str) {
 	GDMP_MSG("## Called 'put_text(%d, %d, %s)'", x, y, str);
-
-	if (_get_stage() != GNUPLOT_STAGE)
-		return;
 
 	if (!str)
 		return;
@@ -746,9 +740,6 @@ int GDMatPlotNative::justify_text(int type) {
 }
 
 void GDMatPlotNative::point(unsigned int x, unsigned int y, int val) {
-	if (_get_stage() != GNUPLOT_STAGE)
-		return;
-
 	EncodedDrawing fd;
 	fd.encode_point(_bp.X(x), _bp.Y(y), _bp.term_pointsize, _bp.get_color());
 	_encoded_drawings.push_back(fd);
@@ -788,9 +779,6 @@ void GDMatPlotNative::fillbox(int style, unsigned int x1, unsigned int y1,
 				unsigned int width, unsigned int height) {
 	GDMP_MSG("## Called 'fillbox(%d, %u, %u, %u, %u)'", style, x1, y1, width, height);
 
-	if (_get_stage() != GNUPLOT_STAGE)
-		return;
-
 	EncodedDrawing fd;
 	fd.encode_fillbox(_bp.X(x1), _bp.Y(y1 + height), _bp.X(width), _bp.X(height),
 					  _bp.get_fill_color(style));
@@ -818,9 +806,6 @@ void GDMatPlotNative::set_color(unsigned int color) {
 
 void GDMatPlotNative::filled_polygon(int point_count, void *corners, int style) {
 	GDMP_MSG("## Called 'filled_polygon(%d, %d)'", point_count, style);
-
-	if (_get_stage() != GNUPLOT_STAGE)
-		return;
 
 	if (point_count <= 0 || !corners)
 		return;
