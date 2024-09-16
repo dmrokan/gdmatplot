@@ -56,11 +56,13 @@
 
 namespace godot {
 
+class GDMatPlotNative;
+
 class GDMatPlotGNUPlotRenderer : public CallableCustom {
 	Callable _loop_func;
-	Ref<Semaphore> _sem;
 	Ref<Mutex> _lock;
 	int64_t _loop_period{ 1000 }; // Period in ms
+	GDMatPlotNative *_self;
 	bool _terminate{ false };
 	bool _paused{ false };
 
@@ -70,10 +72,11 @@ class GDMatPlotGNUPlotRenderer : public CallableCustom {
 	}
 
 public:
-	GDMatPlotGNUPlotRenderer() {
+	GDMatPlotGNUPlotRenderer() :
+			GDMatPlotGNUPlotRenderer(nullptr) {}
+	GDMatPlotGNUPlotRenderer(GDMatPlotNative *self) {
+		_self = self;
 		_lock.instantiate();
-		_sem.instantiate();
-		_sem->post();
 		GDMATPLOT_DEBUG("## Created: GDMatPlotGNUPlotRenderer instance: %p", this);
 	}
 
@@ -127,15 +130,10 @@ public:
 	void terminate() {
 		MutexLock lock(**_lock);
 		_terminate = true;
-		_sem->post();
 	}
 
 	void set_loop_func(const Callable &c) {
 		_loop_func = c;
-	}
-
-	void trigger_render() {
-		_sem->post();
 	}
 
 	void call(const Variant **p_arguments, int p_argcount, Variant &r_return_value,
@@ -144,6 +142,7 @@ public:
 
 class GDMatPlotNative : public Node2D {
 	GDCLASS(GDMatPlotNative, Node2D)
+	friend class GDMatPlotGNUPlotRenderer;
 
 protected:
 	enum ErrorCodes {
@@ -356,6 +355,7 @@ protected:
 		EncodedDrawing();
 		EncodedDrawing(const EncodedDrawing &other);
 		void operator=(const EncodedDrawing &other);
+		void copy(const EncodedDrawing &other);
 
 		void resize();
 
@@ -392,21 +392,58 @@ protected:
 		void decode(GDMatPlotNative *self);
 	};
 
+	struct EncodedDrawingVector {
+		/**
+		   Wrapper struct to force copying. Because compiler optimizes
+		   it to use std::vector move operation which causes invalid
+		   memory access in multi-threaded application.
+		 */
+
+		std::vector<EncodedDrawing> drawings;
+
+		void copy(const EncodedDrawingVector &other);
+		void swap(EncodedDrawingVector &other);
+
+		_ALWAYS_INLINE_ void operator=(const EncodedDrawingVector &other) {
+			copy(other);
+		}
+
+		_ALWAYS_INLINE_ void push_back(const EncodedDrawing &item) {
+			drawings.push_back(item);
+		}
+
+		_ALWAYS_INLINE_ auto begin() {
+			return drawings.begin();
+		}
+
+		_ALWAYS_INLINE_ auto end() {
+			return drawings.end();
+		}
+
+		_ALWAYS_INLINE_ size_t size() {
+			return drawings.size();
+		}
+
+		_ALWAYS_INLINE_ void clear() {
+			drawings.clear();
+		}
+	};
+
 	BackendParams _bp{};
 	PackedVector2Array _path_points;
-	std::vector<EncodedDrawing> _encoded_drawings;
+	// NOTE: Uses double buffering. One buffer to draw, other to generate what to draw.
+	// They are synchronized by GDMatPlotNative#_process_drawings_lock.
+	EncodedDrawingVector _encoded_drawings;
+	EncodedDrawingVector _drawings_to_decode;
 	GDMatPlotGNUPlotRenderer *_gnuplot_render_thread_func{};
 	Ref<Thread> _gnuplot_render_thread;
-	Ref<Mutex> _get_set_stage_lock;
+	Ref<Mutex> _process_drawings_lock;
 	Ref<GDMatPlotBackend> _library;
-	int _stage{ UNDEFINED_STAGE };
 	float _background_alpha{ 1.0 };
 	bool _antialiased{ false };
 
 	static void _bind_methods();
 
-	void _set_stage(int p_stage);
-	int _get_stage();
 	void _draw_plot();
 	void _draw_path_points(bool is_open);
 

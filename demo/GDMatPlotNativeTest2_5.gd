@@ -34,7 +34,5 @@ func _draw_commands():
 		load_dataframe()
 		test_file("errorbars")
 
-		queue_redraw()
-
 func _process(delta):
-	pass
+	queue_redraw()

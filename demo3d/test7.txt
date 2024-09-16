@@ -13,4 +13,3 @@ fx(t) = 16*(sin(om*t)**3)
 fy(t) = 13*cos(om*t)-5*cos(om*2*t)-2*cos(om*3*t)-cos((om**2)*4*t)
 
 plot fx(t),fy(t)  linestyle 1, fx(t),-fy(t)  linestyle 2, fy(t),fx(t)  linestyle 3, -fy(t),fx(t)  linestyle 4
-

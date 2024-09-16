@@ -75,7 +75,5 @@ func _draw_commands():
 		_update_dataframe()
 		test_file("heatmap")
 
-		queue_redraw()
-
 func _process(delta):
-	pass
+	queue_redraw()

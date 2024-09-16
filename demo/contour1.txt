@@ -8,4 +8,3 @@ set cntrparam levels auto 10
 
 splot sin(0.1*om*x*y) notitle
 #splot asin(om*x)+asin(om*y) notitle
-

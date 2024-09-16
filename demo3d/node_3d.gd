@@ -64,7 +64,7 @@ func generate_plots():
 	const scripts = [
 		{ "name": "splot2", "redraw_period": 1e-1, "param_bounds": [ 0.5, 3 ], "param_increment": 3e-2  },
 		{ "name": "splot1", "redraw_period": 1e-1, "param_bounds": [ 0.5, 3 ], "param_increment": 3e-2 },
-		{ "name": "airfoil1", "redraw_period": INF, "param_bounds": [ 0.5, 3 ], "param_increment": 3e-2 },
+		{ "name": "airfoil1", "redraw_period": 1e-1, "param_bounds": [ 0.5, 3 ], "param_increment": 3e-2 },
 		{ "name": "contour2", "redraw_period": 1e-1, "param_bounds": [ 0.5, 4 ], "param_increment": 3e-2 },
 		{ "name": "test7", "redraw_period": 1e-1, "param_bounds": [ 0.5, 8 ], "param_increment": 1e-2 },
 		{ "name": "test8", "redraw_period": 1e-1, "param_bounds": [ 1.1, 24 ], "param_increment": 1e-1 },

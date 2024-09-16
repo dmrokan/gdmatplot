@@ -5,7 +5,7 @@ set view map
 set contour
 unset surface
 set cntrparam levels auto 20
-set style line 1 inewidth 20
+set style line 1 inewidth 1
 
 r = param
 

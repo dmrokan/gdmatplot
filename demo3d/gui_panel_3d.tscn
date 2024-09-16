@@ -25,8 +25,10 @@ transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0, 0, 0)
 [node name="SubViewport" type="SubViewport" parent="."]
 gui_embed_subwindows = true
 size = Vector2i(400, 360)
+render_target_clear_mode = 1
 
 [node name="GDMatPlotNative" type="GDMatPlotNative" parent="SubViewport"]
+antialiasing = true
 script = ExtResource("2_b3h3p")
 
 [node name="Quad" type="MeshInstance3D" parent="."]

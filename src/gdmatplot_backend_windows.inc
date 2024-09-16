@@ -130,7 +130,7 @@ int GDMatPlotBackend::init(GDMatPlotNative *mp_ptr) {
 		return error;
 	}
 
-	_set_gdmp_matplot_object(_gnuplot_interface.get());
+	_set_gdmp_matplot_object(&_gnuplot_interface);
 	_gdmp_init();
 
 	set_status(0);

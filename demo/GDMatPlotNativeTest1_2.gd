@@ -25,7 +25,6 @@ func _ready():
 func _draw_commands():
 	if lib_loaded:
 		test_file("airfoil1")
-		queue_redraw()
 
 func _process(delta):
-	pass
+	queue_redraw()

@@ -42,13 +42,16 @@ func _draw_commands():
 	if not _gnuplot_script_filename.is_empty():
 		test_file(_gnuplot_script_filename)
 
-	queue_redraw()
-
 func _ready():
 	_load_library()
 
+var time: float = 0
 func _process(delta):
-	pass
+	if not _disable_draw and time > _redraw_period:
+		queue_redraw()
+		time = 0
+
+	time += delta
 
 func set_gnuplot_script_and_params(fn: String, inc: float, bounds: Array, redraw_period: float = 1.0):
 	_gnuplot_script_filename = fn
@@ -66,4 +69,3 @@ func enable_draw(enable: bool = true):
 		set_rendering_period(int(1e3 * _redraw_period))
 	else:
 		set_rendering_period(1000000000)
-
