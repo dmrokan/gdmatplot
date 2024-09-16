@@ -31,13 +31,13 @@ You should first test your sequence of GNUPlot commands on an original build wit
 
 It includes several test plots which utilizes a large aspect of GNUPlot of functionality. A test view is shown below.
 
-![Demo2D screenshot](docs/demo2d_screenshot.png?raw=true)
+![Demo2D screenshot](https://raw.githubusercontent.com/dmrokan/gdmatplot/main/docs/demo2d_screenshot.png)
 
 ### 3D demo
 
 In this demo, similar test plots are embedded into 3D game world by using subviewports.
 
-![Demo3D screenshot](docs/demo3d_screenshot.png?raw=true)
+![Demo3D screenshot](https://raw.githubusercontent.com/dmrokan/gdmatplot/main/docs/demo3d_screenshot.png)
 
 https://github.com/user-attachments/assets/0b9b067d-0e99-45da-b536-b9213b482bc7
 
@@ -77,57 +77,91 @@ set_dataframe(df, 3)
 
 ## Usage
 
-Since version 0.2.0 GDMatPlot imposes a specific programming pattern because GNUPlot's command parsing and rendering add an overhead which does not fit the performace requirements of a game engine. Instead of directly drawing the results of `run_command` in `_draw` function, `run_command` it is called in a renderer loop which is called in a separate thread. In the renderer thread GNUPlot processes commands and generates draw line, polygon, point etc. calls which are encoded in an efficient data structure. Then, a new draw call is queued by calling `queue_redraw` as shown in the example below. When new drawing triggered, encoded draw calls are decoded and converted to `CanvasItem`s `draw_polyline`, `draw_polygon`, etc. calls. This method absorbs the negative effect of GNUPlot's command parsing on the frame rate (FPS).
+Since version 0.2.0 GDMatPlot imposes a specific programming pattern because GNUPlot's command parsing and rendering add an overhead which does not fit the performace requirements of a game engine. Instead of directly drawing the results of `run_command` in `_draw` function, `run_command` it is called in a renderer loop which is called in a separate thread. In the renderer thread GNUPlot processes commands and generates draw line, polygon, point etc. calls which are encoded in an efficient data structure. Then, a new draw call is queued by calling `queue_redraw` as shown in the example below. When new drawing triggered, encoded draw calls are decoded and converted to `CanvasItem`s `draw_polyline`, `draw_polygon`, etc. calls. This method cancels the negative effect of GNUPlot's command parsing on the frame rate (FPS).
 
 ```gdscript
+extends GDMatPlotNative
+
 var dataframe: PackedFloat64Array
 var lib_loaded: bool = false
-var figure_size: Vector2i = Vector2i(480, 640)
+var figure_size: Vector2i = Vector2i(640, 480)
 var renderer_period: int = 100
+var update_df_period: float = 0.1
+var col_count: int = 4
+var sample_count: int = 100
+# Protect access to dataframe from GNUPlot renderer thread
+var df_lock: Mutex = Mutex.new()
 func _ready():
-	var dataframe.resize(100)
-	# ... fill data frame ... #
+	transparency = 0.75 # Set plot's transparency
+	antialiasing = true # Enable antialized lines
+	dataframe.resize(sample_count)
+	for i in range(0, sample_count, col_count):
+		var x: float = i - sample_count / 2.0
+		dataframe[i+0] = x # 1st column of dataframe
+		dataframe[i+1] = x / pow(sample_count / 2.0, 1) # 2nd column
+		dataframe[i+2] = x * x / pow(sample_count / 2.0, 2) # 3rd column
+		dataframe[i+3] = x * x * x / pow(sample_count / 2.0, 3) # 4th column
 
 	var error: int = load_gnuplot()
 	if error == 0:
 		lib_loaded = true
-		set_dataframe(dataframe, 4) # 4 coloumns 100/4 = 25 rows
+		set_dataframe(dataframe, col_count) # 4 columns 100/4 = 25 rows
 		start_renderer(_draw_commands)
 		set_rendering_period(renderer_period)
 
 func _draw_commands():
 	if lib_loaded:
+		df_lock.lock()
 		load_dataframe()
+		df_lock.unlock()
+		"""GNUPlot commands"""
 		run_command("set terminal gdmp size %d,%d" % [figure_size.x, figure_size.y])
-		# ... other commands ... #
-		run_command("plot 'df' using 1:3 with lines linestyle 1, 'df' using 2:3 with lines linestyle 3")
-
-		# You should always call this after running all GNUPlot commands.
-		queue_redraw()
+		run_command("set grid on")
+		# 'df' is a placeholder, it can be any alphanumeric string.
+		run_command("plot 'df' using 1:2 with lines, 'dfasd' using 1:3 with lines, 'df' using 1:4 with lines")
 
 func update_dataframe():
 	# ... process dataframe ...#
+	for i in range(sample_count):
+		dataframe[i] *= 0.99
 	if lib_loaded:
-		set_dataframe(dataframe, 4)
+		df_lock.lock()
+		set_dataframe(dataframe, col_count)
+		df_lock.unlock()
 
 """
-You don't need to define _draw function. GDMatPlotNative overrides it 
-and draw_plot will be autmatically called. You should define _draw here 
+You don't need to define _draw function. GDMatPlotNative overrides it
+and draw_plot will be autmatically called. You should define _draw here
 if you want to draw some other stuff (e.g. an image) before and after draw_plot.
 """
 func _draw():
-	# draw some stuff
+	# draw some stuff behind the plot
+	draw_circle(Vector2(), 250, Color.AQUA)
 	if lib_loaded:
 		draw_plot()
-	# draw some other stuf
+	# draw other stuff over the plot
+	draw_circle(figure_size, 250, Color(0.0, 0.2, 0.0, 0.5))
 
+var some_condition: bool = false
+var total_time: float = 0.0
+"""
+You should call `queue_redraw` manually after an event or at a desired period.
+Otherwise, plot will not be redrawn.
+"""
 func _process(delta):
-	update_dataframe()
-
+	if total_time > update_df_period:
+		update_dataframe()
+		queue_redraw()
+		total_time = 0
+	total_time += delta
 	if lib_loaded and some_condition:
 		# Pause renderer when ever you want by setting a very large period.
 		set_rendering_period(1000000000)
 ```
+
+**Output of the script:**
+
+![Example plot](https://raw.githubusercontent.com/dmrokan/gdmatplot/main/docs/example_plot.png)
 
 ## Build from source
 
